@@ -82,4 +82,4 @@ END
 
 
 BOOTROM_BIN	BINARY		"bootrom/bootrom_256byte.bin"
-
+BOOTROM_CGB_BIN	BINARY		"bootrom/bootrom_cgb.bin"

@@ -32,6 +32,7 @@ bool Main::ROM_loaded_flag = false;
 uint8_t Main::Cartridge_Type = 0;
 uint32_t Main::PGM_size = 0;
 uint32_t Main::SRAM_size = 0;
+Main::GAME_HARDWARE_TYPE Main::game_hardware_type = Main::GAME_HARDWARE_TYPE::GAMEBOY;
 
 bool Main::Show_FPS_Flag = true;
 
@@ -563,8 +564,18 @@ LRESULT CALLBACK WinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_param)
 				else {
 					strcpy_s(cart_type_name, 256, "UNKNOWN");
 				}
-				char tmp_str_buffer[512];
-				sprintf_s(tmp_str_buffer, "カードリッジのタイプ : [0x%02x] %s\nプログラムROMサイズ : %dKB\nSRAMのサイズ : %dKB", Main::Cartridge_Type, cart_type_name, Main::PGM_size, Main::SRAM_size);
+				char hardware_type_name[256];
+				if (Main::game_hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+					strcpy_s(hardware_type_name, 256, "ゲームボーイ");
+				}
+				else if (Main::game_hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
+					strcpy_s(hardware_type_name, 256, "ゲームボーイカラー");
+				}
+				else {
+					strcpy_s(hardware_type_name, 256, "UNKNOWN");
+				}
+				char tmp_str_buffer[1024];
+				sprintf_s(tmp_str_buffer, "カードリッジのタイプ : [0x%02x] %s\nプログラムROMサイズ : %dKB\nSRAMのサイズ : %dKB\n動作モード : %s", Main::Cartridge_Type, cart_type_name, Main::PGM_size, Main::SRAM_size, hardware_type_name);
 				MessageBox(NULL, _T(tmp_str_buffer), _T("ROM情報"), MB_ICONINFORMATION);
 			}
 			else {

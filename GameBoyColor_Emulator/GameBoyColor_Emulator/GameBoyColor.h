@@ -25,11 +25,17 @@ private:
 	bool FATAL_ERROR_FLAG = false;//ロードなどで続行不能なエラーが発生したか
 
 
+
+	Main::GAME_HARDWARE_TYPE hardware_type;
+	
+
+
 #define SAVEDATA_FILE_EXT_NAME ".savdat"
 	FILE* savedata_fp;
 
 
 #define BOOT_ROM_SIZE 0x100
+#define BOOT_ROM_SIZE_CGB 0x900
 	bool booting_flag = true;//ブートロムを実行中ならtrue
 	//ブートロムのコード
 	//const uint8_t READ_ONLY_BOOTROM_CODE_256byte[BOOT_ROM_SIZE] = {
@@ -60,6 +66,18 @@ private:
 		READ_ONLY_BOOTROM_CODE_256byte = (uint8_t*)LockResource(hGM);
 
 		memcpy(bootrom_256byte, READ_ONLY_BOOTROM_CODE_256byte, BOOT_ROM_SIZE);
+	}
+
+	uint8_t bootrom_2048byte__cgb[BOOT_ROM_SIZE_CGB];
+	void init_bootrom__cgb() {//ブートロムの初期化をする(ゲームボーイカラー)
+		static uint8_t* READ_ONLY_BOOTROM_CODE_2048byte__cgb;
+
+		//このプログラムをビルドする際は必ず正しいCGBのbootromのバイナリファイル(0x900バイト)を "bootrom/bootrom_cgb.bin" に入れること
+		//正しくないと正常に動かないことがある
+		HGLOBAL hGM = LoadResource(NULL, FindResource(NULL, TEXT("BOOTROM_CGB_BIN"), TEXT("BINARY")));
+		READ_ONLY_BOOTROM_CODE_2048byte__cgb = (uint8_t*)LockResource(hGM);
+
+		memcpy(bootrom_2048byte__cgb, READ_ONLY_BOOTROM_CODE_2048byte__cgb, BOOT_ROM_SIZE_CGB);
 	}
 
 
@@ -870,72 +888,84 @@ private:
 	uint8_t read_RAM_8bit(uint16_t read_address) {
 		uint8_t read_value = 0x00;
 	
-		if (booting_flag == true && read_address < 0x100) {//ブートロム中かつブートロム内のとき
-			read_value = bootrom_256byte[read_address];
+		if (booting_flag == true) {
+			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//カラーでないとき
+				if (read_address < 0x100) {//ブートロム中かつブートロム内のとき
+					read_value = bootrom_256byte[read_address];
+
+					return read_value;
+				}
+			}
+			else {//カラーのとき
+				if (read_address < 0x100 || (0x200 <= read_address && read_address < 0x900)) {//ブートロム中かつブートロム内のとき
+					read_value = bootrom_2048byte__cgb[read_address];
+
+					return read_value;
+				}
+			}
 		}
-		else {
-			if (read_address <= 0x3FFF) {//ROMバンク00
-				read_value = gbx_ram.RAM[read_address];
-			}
-			else if (read_address <= 0x7FFF) {//ROMバンク01-7F
-				//read_value = gbx_ram.RAM[read_address];
+
+		if (read_address <= 0x3FFF) {//ROMバンク00
+			read_value = gbx_ram.RAM[read_address];
+		}
+		else if (read_address <= 0x7FFF) {//ROMバンク01-7F
+			//read_value = gbx_ram.RAM[read_address];
 	
-				uint8_t* read_ROM_address = get_read_ROM_address();
-				read_value = read_ROM_address[read_address - 0x4000];
+			uint8_t* read_ROM_address = get_read_ROM_address();
+			read_value = read_ROM_address[read_address - 0x4000];
+		}
+		else if (0xA000 <= read_address && read_address <= 0xBFFF) {//RAMバンク00-03（存在する場合）
+			if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2のとき
+				read_value = *(getMBC2_RAM_address(read_address));
 			}
-			else if (0xA000 <= read_address && read_address <= 0xBFFF) {//RAMバンク00-03（存在する場合）
-				if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2のとき
-					read_value = *(getMBC2_RAM_address(read_address));
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC3 && bank_mode == BankMode::RTC) {//MBC3でRTC読み取りのとき
-					/*
-					TODO
-					RTCレジスタの読み取りを実装する
-					*/
-					read_value = 0x00;
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROMのタイプがHuC1かつIRモードのとき) {
-					/*
-					TODO
-					IRの読み取りを実装する
-					*/
-	
-					//0xC1（赤外線を受信した）または0xC0（受信しなかった）
-					read_value = 0xC0;//受信しなかったことにしておく
-				}
-				else {
-					uint8_t* read_SRAM_address = get_read_SRAM_address();
-					read_value = read_SRAM_address[read_address - 0xA000];
-				}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC3 && bank_mode == BankMode::RTC) {//MBC3でRTC読み取りのとき
+				/*
+				TODO
+				RTCレジスタの読み取りを実装する
+				*/
+				read_value = 0x00;
 			}
-			else if (read_address == 0xFF00) {//ジョイパッド
-				if ((gbx_ram.RAM[0xFF00] & 0b00010000) == 0) {//方向キー
+			else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROMのタイプがHuC1かつIRモードのとき) {
+				/*
+				TODO
+				IRの読み取りを実装する
+				*/
 	
-					uint8_t b_down = (key->get_input_state__GBX__(INPUT_MY_ID_DOWN) != 0) ? 1 : 0;
-					uint8_t b_up = (key->get_input_state__GBX__(INPUT_MY_ID_UP) != 0) ? 1 : 0;
-					uint8_t b_left = (key->get_input_state__GBX__(INPUT_MY_ID_LEFT) != 0) ? 1 : 0;
-					uint8_t b_right = (key->get_input_state__GBX__(INPUT_MY_ID_RIGHT) != 0) ? 1 : 0;
-	
-					read_value = (gbx_ram.RAM[0xFF00] & 0b00110000);
-					read_value |= ((~((b_down << 3) | (b_up << 2) | (b_left << 1) | b_right)) & 0b00001111);
-				}
-				else if ((gbx_ram.RAM[0xFF00] & 0b00100000) == 0) {//アクションキー
-					uint8_t b_start = (key->get_input_state__GBX__(INPUT_MY_ID_START) != 0) ? 1 : 0;
-					uint8_t b_select = (key->get_input_state__GBX__(INPUT_MY_ID_SELECT) != 0) ? 1 : 0;
-					uint8_t b_b = (key->get_input_state__GBX__(INPUT_MY_ID_B) != 0) ? 1 : 0;
-					uint8_t b_a = (key->get_input_state__GBX__(INPUT_MY_ID_A) != 0) ? 1 : 0;
-	
-					read_value = (gbx_ram.RAM[0xFF00] & 0b00110000);
-					read_value |= ((~((b_start << 3) | (b_select << 2) | (b_b << 1) | b_a)) & 0b00001111);
-				}
-				else {
-					read_value = gbx_ram.RAM[0xFF00] & 0b00110000;
-					read_value |= 0b00001111;
-				}
+				//0xC1（赤外線を受信した）または0xC0（受信しなかった）
+				read_value = 0xC0;//受信しなかったことにしておく
 			}
-			else {//通常読み取り
-				read_value = gbx_ram.RAM[read_address];
+			else {
+				uint8_t* read_SRAM_address = get_read_SRAM_address();
+				read_value = read_SRAM_address[read_address - 0xA000];
 			}
+		}
+		else if (read_address == 0xFF00) {//ジョイパッド
+			if ((gbx_ram.RAM[0xFF00] & 0b00010000) == 0) {//方向キー
+	
+				uint8_t b_down = (key->get_input_state__GBX__(INPUT_MY_ID_DOWN) != 0) ? 1 : 0;
+				uint8_t b_up = (key->get_input_state__GBX__(INPUT_MY_ID_UP) != 0) ? 1 : 0;
+				uint8_t b_left = (key->get_input_state__GBX__(INPUT_MY_ID_LEFT) != 0) ? 1 : 0;
+				uint8_t b_right = (key->get_input_state__GBX__(INPUT_MY_ID_RIGHT) != 0) ? 1 : 0;
+	
+				read_value = (gbx_ram.RAM[0xFF00] & 0b00110000);
+				read_value |= ((~((b_down << 3) | (b_up << 2) | (b_left << 1) | b_right)) & 0b00001111);
+			}
+			else if ((gbx_ram.RAM[0xFF00] & 0b00100000) == 0) {//アクションキー
+				uint8_t b_start = (key->get_input_state__GBX__(INPUT_MY_ID_START) != 0) ? 1 : 0;
+				uint8_t b_select = (key->get_input_state__GBX__(INPUT_MY_ID_SELECT) != 0) ? 1 : 0;
+				uint8_t b_b = (key->get_input_state__GBX__(INPUT_MY_ID_B) != 0) ? 1 : 0;
+				uint8_t b_a = (key->get_input_state__GBX__(INPUT_MY_ID_A) != 0) ? 1 : 0;
+	
+				read_value = (gbx_ram.RAM[0xFF00] & 0b00110000);
+				read_value |= ((~((b_start << 3) | (b_select << 2) | (b_b << 1) | b_a)) & 0b00001111);
+			}
+			else {
+				read_value = gbx_ram.RAM[0xFF00] & 0b00110000;
+				read_value |= 0b00001111;
+			}
+		}
+		else {//通常読み取り
+			read_value = gbx_ram.RAM[read_address];
 		}
 	
 		return read_value;
@@ -948,230 +978,242 @@ private:
 	}
 	
 	void write_RAM_8bit(uint16_t write_address, uint8_t value) {
-		if (booting_flag == true && write_address < 0x100) {//ブートロム中かつブートロム内のとき
-			bootrom_256byte[write_address] = value;
-		}
-		else {
-			if (write_address <= 0x1FFF) {//RAMの有効化
-				if (cart_mbc_type == CART_MBC_TYPE::ROM ||
-					cart_mbc_type == CART_MBC_TYPE::OTHER ||
-					cart_mbc_type == CART_MBC_TYPE::MBC1 ||
-					
-					cart_mbc_type == CART_MBC_TYPE::MBC5)
-				{
-					if ((value & 0b00001111) == 0x0A) {
-						SRAM_Enable_Flag = true;
-					}
-					else {
-						SRAM_Enable_Flag = false;
-					}
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
-					if ((write_address & 0b0000000100000000) == 0) {//上位アドレスバイトの最下位ビットが0のとき
-						if (value == 0x0A) {
-							SRAM_Enable_Flag = true;
-						}
-						else {
-							SRAM_Enable_Flag = false;
-						}
-					}
-					else {//それ以外のとき
-						rom_bank_no__low = (value & 0b00001111);
-						if (rom_bank_no__low == 0) {
-							rom_bank_no__low = 1;
-						}
-					}
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
-					if ((value & 0b00001111) == 0x0A) {
-						SRAM_Enable_Flag = true;
-						RTC_Enable_Flag = true;
-					}
-					else {
-						SRAM_Enable_Flag = false;
-						RTC_Enable_Flag = false;
-					}
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
-					if (value == 0x0E) {
-						bank_mode = BankMode::IR;
-					}
-					else {
-						bank_mode = BankMode::SRAM;
-					}
+		if (booting_flag == true) {
+			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//カラーでないとき
+				if (write_address < 0x100) {//ブートロム中かつブートロム内のとき
+					bootrom_256byte[write_address] = value;
+
+					return;
 				}
 			}
-			else if (write_address <= 0x3FFF) {//ROMバンク番号
-				//M_debug_printf("write_address <= 0x3FFF [value = 0x%02x]\n", value);
-				//system("pause");
-	
-				if (cart_mbc_type == CART_MBC_TYPE::ROM ||
-					cart_mbc_type == CART_MBC_TYPE::OTHER ||
-					cart_mbc_type == CART_MBC_TYPE::MBC1)
-				{
-					rom_bank_no__low = (value & 0b00011111);
-					if (rom_bank_no__low == 0 && (!(bank_mode == BankMode::ROM && rom_bank_no__high != 0))) {
-						rom_bank_no__low = 1;
+			else {//カラーのとき
+				if (write_address < 0x100 || (0x200 <= write_address && write_address < 0x900)) {//ブートロム中かつブートロム内のとき
+					bootrom_2048byte__cgb[write_address] = value;
+
+					return;
+				}
+			}
+		}
+
+		if (write_address <= 0x1FFF) {//RAMの有効化
+			if (cart_mbc_type == CART_MBC_TYPE::ROM ||
+				cart_mbc_type == CART_MBC_TYPE::OTHER ||
+				cart_mbc_type == CART_MBC_TYPE::MBC1 ||
+					
+				cart_mbc_type == CART_MBC_TYPE::MBC5)
+			{
+				if ((value & 0b00001111) == 0x0A) {
+					SRAM_Enable_Flag = true;
+				}
+				else {
+					SRAM_Enable_Flag = false;
+				}
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
+				if ((write_address & 0b0000000100000000) == 0) {//上位アドレスバイトの最下位ビットが0のとき
+					if (value == 0x0A) {
+						SRAM_Enable_Flag = true;
+					}
+					else {
+						SRAM_Enable_Flag = false;
 					}
 				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
-					if ((write_address & 0b0000000100000000) == 0) {//上位アドレスバイトの最下位ビットが0のとき
-						if (value == 0x0A) {
-							SRAM_Enable_Flag = true;
-						}
-						else {
-							SRAM_Enable_Flag = false;
-						}
-					}
-					else {//それ以外のとき
-						rom_bank_no__low = (value & 0b00001111);
-						if (rom_bank_no__low == 0) {
-							rom_bank_no__low = 1;
-						}
-					}
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
-					rom_bank_no__low = (value & 0b01111111);
+				else {//それ以外のとき
+					rom_bank_no__low = (value & 0b00001111);
 					if (rom_bank_no__low == 0) {
 						rom_bank_no__low = 1;
 					}
 				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC5) {
-					if (write_address <= 0x2FFF) {
-						rom_bank_no__low = value;
-					}
-					else {
-						rom_bank_no__high = (value & 0b00000001);
-					}
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
+				if ((value & 0b00001111) == 0x0A) {
+					SRAM_Enable_Flag = true;
+					RTC_Enable_Flag = true;
 				}
-				else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
-					rom_bank_no__low = value;
+				else {
+					SRAM_Enable_Flag = false;
+					RTC_Enable_Flag = false;
 				}
 			}
-			else if (write_address <= 0x5FFF) {//RAMバンク番号-または-ROMバンク番号の上位ビット
-				//M_debug_printf("write_address <= 0x5FFF [value = 0x%02x]\n", value);
-				//system("pause");
+			else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
+				if (value == 0x0E) {
+					bank_mode = BankMode::IR;
+				}
+				else {
+					bank_mode = BankMode::SRAM;
+				}
+			}
+		}
+		else if (write_address <= 0x3FFF) {//ROMバンク番号
+			//M_debug_printf("write_address <= 0x3FFF [value = 0x%02x]\n", value);
+			//system("pause");
+	
+			if (cart_mbc_type == CART_MBC_TYPE::ROM ||
+				cart_mbc_type == CART_MBC_TYPE::OTHER ||
+				cart_mbc_type == CART_MBC_TYPE::MBC1)
+			{
+				rom_bank_no__low = (value & 0b00011111);
+				if (rom_bank_no__low == 0 && (!(bank_mode == BankMode::ROM && rom_bank_no__high != 0))) {
+					rom_bank_no__low = 1;
+				}
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
+				if ((write_address & 0b0000000100000000) == 0) {//上位アドレスバイトの最下位ビットが0のとき
+					if (value == 0x0A) {
+						SRAM_Enable_Flag = true;
+					}
+					else {
+						SRAM_Enable_Flag = false;
+					}
+				}
+				else {//それ以外のとき
+					rom_bank_no__low = (value & 0b00001111);
+					if (rom_bank_no__low == 0) {
+						rom_bank_no__low = 1;
+					}
+				}
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
+				rom_bank_no__low = (value & 0b01111111);
+				if (rom_bank_no__low == 0) {
+					rom_bank_no__low = 1;
+				}
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC5) {
+				if (write_address <= 0x2FFF) {
+					rom_bank_no__low = value;
+				}
+				else {
+					rom_bank_no__high = (value & 0b00000001);
+				}
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
+				rom_bank_no__low = value;
+			}
+		}
+		else if (write_address <= 0x5FFF) {//RAMバンク番号-または-ROMバンク番号の上位ビット
+			//M_debug_printf("write_address <= 0x5FFF [value = 0x%02x]\n", value);
+			//system("pause");
 	
 	
-				if (cart_mbc_type == CART_MBC_TYPE::ROM ||
-					cart_mbc_type == CART_MBC_TYPE::OTHER ||
-					cart_mbc_type == CART_MBC_TYPE::MBC1)
-				{
-					if (bank_mode == BankMode::ROM) {
-						rom_bank_no__high = (value & 0b00000011);
-					}
-					else if (bank_mode == BankMode::SRAM) {
-						sram_bank_no = (value & 0b00000011);
-					}
+			if (cart_mbc_type == CART_MBC_TYPE::ROM ||
+				cart_mbc_type == CART_MBC_TYPE::OTHER ||
+				cart_mbc_type == CART_MBC_TYPE::MBC1)
+			{
+				if (bank_mode == BankMode::ROM) {
+					rom_bank_no__high = (value & 0b00000011);
 				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
-					//何もしない
+				else if (bank_mode == BankMode::SRAM) {
+					sram_bank_no = (value & 0b00000011);
 				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
-					if (0x00 <= value && value <= 0x03) {
-						bank_mode = BankMode::SRAM;
-						sram_bank_no = (value & 0b00000011);
-					}
-					else if (value <= 0x0C) {
-						bank_mode = BankMode::RTC;
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
+				//何もしない
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
+				if (0x00 <= value && value <= 0x03) {
+					bank_mode = BankMode::SRAM;
+					sram_bank_no = (value & 0b00000011);
+				}
+				else if (value <= 0x0C) {
+					bank_mode = BankMode::RTC;
 	
-						if (value == 0x08) {
-							clock_type__mbc3 = CLOCK_TYPE__MBC3::SECONDS;
-						}
-						else if (value == 0x09) {
-							clock_type__mbc3 = CLOCK_TYPE__MBC3::MINUTES;
-						}
-						else if (value == 0x0A) {
-							clock_type__mbc3 = CLOCK_TYPE__MBC3::HOURS;
-						}
-						else if (value == 0x0B) {
-							clock_type__mbc3 = CLOCK_TYPE__MBC3::DAY_LOW;
-						}
-						else if (value == 0x0C) {
-							clock_type__mbc3 = CLOCK_TYPE__MBC3::DAY_HIGH;
-						}
+					if (value == 0x08) {
+						clock_type__mbc3 = CLOCK_TYPE__MBC3::SECONDS;
+					}
+					else if (value == 0x09) {
+						clock_type__mbc3 = CLOCK_TYPE__MBC3::MINUTES;
+					}
+					else if (value == 0x0A) {
+						clock_type__mbc3 = CLOCK_TYPE__MBC3::HOURS;
+					}
+					else if (value == 0x0B) {
+						clock_type__mbc3 = CLOCK_TYPE__MBC3::DAY_LOW;
+					}
+					else if (value == 0x0C) {
+						clock_type__mbc3 = CLOCK_TYPE__MBC3::DAY_HIGH;
 					}
 				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC5) {
-					if (0x00 <= value && value <= 0x0F) {
-						sram_bank_no = value;
-					}
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC5) {
+				if (0x00 <= value && value <= 0x0F) {
 					sram_bank_no = value;
 				}
 			}
-			else if (write_address <= 0x7FFF) {//ROM / RAMモード選択
-				//M_debug_printf("write_address <= 0x7FFF [value = 0x%02x]\n", value);
-				//system("pause");
+			else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
+				sram_bank_no = value;
+			}
+		}
+		else if (write_address <= 0x7FFF) {//ROM / RAMモード選択
+			//M_debug_printf("write_address <= 0x7FFF [value = 0x%02x]\n", value);
+			//system("pause");
 	
-				if (cart_mbc_type == CART_MBC_TYPE::ROM ||
-					cart_mbc_type == CART_MBC_TYPE::OTHER ||
-					cart_mbc_type == CART_MBC_TYPE::MBC1)
-				{
-					if (value == 0) {
-						bank_mode = BankMode::ROM;
-					}
-					else if (value == 1) {
-						bank_mode = BankMode::SRAM;
-					}
+			if (cart_mbc_type == CART_MBC_TYPE::ROM ||
+				cart_mbc_type == CART_MBC_TYPE::OTHER ||
+				cart_mbc_type == CART_MBC_TYPE::MBC1)
+			{
+				if (value == 0) {
+					bank_mode = BankMode::ROM;
 				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
-					//何もしない
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
-					/*
-					TODO
-					現在の時刻の保存を実装する
-					*/
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC5) {
-					//何もしない
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
-					//何もしない
+				else if (value == 1) {
+					bank_mode = BankMode::SRAM;
 				}
 			}
-			else if (0xA000 <= write_address && write_address <= 0xBFFF) {//RAMバンク00-03（存在する場合）
-				//gbx_ram.RAM[write_address] = value;
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
+				//何もしない
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
+				/*
+				TODO
+				現在の時刻の保存を実装する
+				*/
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC5) {
+				//何もしない
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
+				//何もしない
+			}
+		}
+		else if (0xA000 <= write_address && write_address <= 0xBFFF) {//RAMバンク00-03（存在する場合）
+			//gbx_ram.RAM[write_address] = value;
 
-				if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2のとき
-					*(getMBC2_RAM_address(write_address)) = value;
+			if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2のとき
+				*(getMBC2_RAM_address(write_address)) = value;
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC3 && bank_mode == BankMode::RTC) {//ROMのタイプがMBC3かつRTCモードのとき
+				/*
+				TODO
+				RTCレジスタへの書き込みを実装する
+				*/
+			}
+			else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROMのタイプがHuC1かつIRモードのとき
+				if (value == 0x00) {
+					IR_Enable_Flag = false;
 				}
-				else if (cart_mbc_type == CART_MBC_TYPE::MBC3 && bank_mode == BankMode::RTC) {//ROMのタイプがMBC3かつRTCモードのとき
-					/*
-					TODO
-					RTCレジスタへの書き込みを実装する
-					*/
-				}
-				else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROMのタイプがHuC1かつIRモードのとき
-					if (value == 0x00) {
-						IR_Enable_Flag = false;
-					}
-					else if (value == 0x01) {
-						IR_Enable_Flag = true;
-					}
-				}
-				else {
-					uint8_t* read_SRAM_address = get_read_SRAM_address();
-					read_SRAM_address[write_address - 0xA000] = value;
+				else if (value == 0x01) {
+					IR_Enable_Flag = true;
 				}
 			}
-			else if (write_address == 0xFF00) {//ジョイパッド
-				gbx_ram.RAM[0xFF00] = (value & 0b00110000);
+			else {
+				uint8_t* read_SRAM_address = get_read_SRAM_address();
+				read_SRAM_address[write_address - 0xA000] = value;
 			}
-			else if (write_address == 0xFF04) {
-				gbx_ram.RAM[write_address] = 0x00;
-			}
-			else if (write_address == 0xFF46) {//DMA
-				uint16_t src_address = value << 8;
-				memcpy((void*)(&(gbx_ram.RAM[0xFE00])), (void*)(&(gbx_ram.RAM[src_address])), 40 * 4);
+		}
+		else if (write_address == 0xFF00) {//ジョイパッド
+			gbx_ram.RAM[0xFF00] = (value & 0b00110000);
+		}
+		else if (write_address == 0xFF04) {
+			gbx_ram.RAM[write_address] = 0x00;
+		}
+		else if (write_address == 0xFF46) {//DMA
+			uint16_t src_address = value << 8;
+			memcpy((void*)(&(gbx_ram.RAM[0xFE00])), (void*)(&(gbx_ram.RAM[src_address])), 40 * 4);
 	
-				//サイクル数はすすめない //cpu_machine_cycle += 160;//160 M-cycle かかる
-			}
-			else {//通常書き込み
-				gbx_ram.RAM[write_address] = value;
-			}
+			//サイクル数はすすめない //cpu_machine_cycle += 160;//160 M-cycle かかる
+		}
+		else {//通常書き込み
+			gbx_ram.RAM[write_address] = value;
 		}
 	}
 
@@ -4569,6 +4611,16 @@ private:
 			goto read_rom_error;
 		}
 
+		if (((rom_info.CGB_Flag) & 0b11000000) == 0b11000000/*ゲームボーイカラー専用*/ ||
+			((rom_info.CGB_Flag) & 0b11000000) == 0b10000000/*ゲームボーイカラー対応で、古いゲームボーイでも動く*/)
+		{
+			hardware_type = Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR;
+		}
+		else {/*ゲームボーイ専用(白黒のやつ)*/
+			hardware_type = Main::GAME_HARDWARE_TYPE::GAMEBOY;
+		}
+		Main::game_hardware_type = hardware_type;
+
 		if (fseek(rom_fp, 0x146, SEEK_SET) != 0) {
 			goto read_rom_error;
 		}
@@ -5472,7 +5524,12 @@ public:
 		cpu_init();
 		ppu_init();
 		init_util();
-		init_bootrom();
+		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+			init_bootrom();
+		}
+		else {
+			init_bootrom__cgb();
+		}
 
 		size_t savedata_filename_size = strlen(rom_filename) + strlen(SAVEDATA_FILE_EXT_NAME) + 1;
 		char* savedata_filename = (char*)malloc(savedata_filename_size);
@@ -5540,12 +5597,18 @@ public:
 
 			uint8_t instruction_code;
 
-			if (booting_flag == true) {//ブートロム実行中の時
-				instruction_code = bootrom_256byte[gbx_register.PC];
-			}
-			else {
-				instruction_code = read_RAM_8bit(gbx_register.PC);
-			}
+			//if (booting_flag == true) {//ブートロム実行中の時
+			//	if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+			//		instruction_code = bootrom_256byte[gbx_register.PC];
+			//	}
+			//	else {
+			//		instruction_code = bootrom_2048byte__cgb[gbx_register.PC];
+			//	}
+			//}
+			//else {
+			//	instruction_code = read_RAM_8bit(gbx_register.PC);
+			//}
+			instruction_code = read_RAM_8bit(gbx_register.PC);
 
 			//=========================================================
 			
