@@ -73,6 +73,8 @@ RIGHT
 
 #define GET_COLOR_ALPHA255(r, g, b) ((0xFF * 0x1000000) + (r * 0x10000) + (g * 0x100) + b)
 
+#define GET_5BIT_COLOR_ALPHA255(r, g, b) ((0xFF * 0x1000000) + ((r << 3) * 0x10000) + ((g << 3) * 0x100) + (b << 3))
+
 struct my_rgb {
 	int r;
 	int g;

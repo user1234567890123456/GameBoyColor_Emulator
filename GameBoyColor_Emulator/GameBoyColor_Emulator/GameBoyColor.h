@@ -27,7 +27,7 @@ private:
 
 
 	Main::GAME_HARDWARE_TYPE hardware_type;
-	
+
 
 
 #define SAVEDATA_FILE_EXT_NAME ".savdat"
@@ -144,6 +144,50 @@ private:
 		}
 
 		return GB_PALETTE_LIST[color_data];
+	}
+
+	//======================
+	//======================
+
+	/*
+	0   BGP0
+			- 色番号0の色データ(2バイト, 後述)
+			- 色番号1
+			- 色番号2
+			- 色番号3
+	8   BGP1
+			- 色番号0
+			- 色番号1
+			- 色番号2
+			- 色番号3
+	16  BGP2
+			- 色番号0
+			- 色番号1
+			- 色番号2
+			- 色番号3
+		...
+	56  BGP7
+			- 色番号0
+			- 色番号1
+			- 色番号2
+			- 色番号3
+	*/
+	uint8_t cgb_color_list_bg_window_index = 0;
+	bool cgb_color_list_bg_window_auto_inc_flag = false;
+	uint8_t cgb_color_list_bg_window[0x40];
+	uint16_t get_bg_window_palette__cgb(uint8_t _3bit_palette_no, uint8_t _2bit_color_no) {
+		uint8_t* palette_top_ptr = &(cgb_color_list_bg_window[(_3bit_palette_no & 0b00000111) * 8]);
+
+		return ((palette_top_ptr[(_2bit_color_no & 0b00000011) * 2]) | ((palette_top_ptr[(_2bit_color_no & 0b00000011) * 2 + 1]) << 8));
+	}
+
+	uint8_t cgb_color_list_sprite_index = 0;
+	bool cgb_color_list_sprite_auto_inc_flag = false;
+	uint8_t cgb_color_list_sprite[0x40];
+	uint16_t get_sprite_palette__cgb(uint8_t _3bit_palette_no, uint8_t _2bit_color_no) {
+		uint8_t* palette_top_ptr = &(cgb_color_list_sprite[(_3bit_palette_no & 0b00000111) * 8]);
+
+		return ((palette_top_ptr[(_2bit_color_no & 0b00000011) * 2]) | ((palette_top_ptr[(_2bit_color_no & 0b00000011) * 2 + 1]) << 8));
 	}
 
 
@@ -780,6 +824,11 @@ private:
 	uint8_t* ROM_bank_data_ptr;//ROMが32KB以上のときに使うやつ
 	uint8_t* SRAM_bank_data_ptr;//RAMが8KB以上のときに使うやつ
 
+	uint8_t VRAM_bank_no__cgb = 0;
+	uint8_t VRAM_bank1_data_ptr__cgb[0x2000];
+	uint8_t WRAM_bank_no__cgb = 1;
+	uint8_t WRAM_bank1_7_data_ptr__cgb[0x1000 * 7];
+
 	bool IME_Flag = false;
 
 	enum class CART_MBC_TYPE {
@@ -885,10 +934,66 @@ private:
 		return (uint8_t*)(&(gbx_ram.RAM[0xA000]) + relative_address);
 	}
 
+	uint8_t* get_read_RAM_address___(uint16_t read_address) {
+		if (booting_flag == true) {//ブートロム中のとき
+			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//カラーでないとき
+				if (read_address < 0x100) {//ブートロム中かつブートロム内のとき
+					return &(bootrom_256byte[read_address]);
+				}
+			}
+			else {//カラーのとき
+				if (read_address < 0x100 || (0x200 <= read_address && read_address < 0x900)) {//ブートロム中かつブートロム内のとき
+					return &(bootrom_2048byte__cgb[read_address]);
+				}
+			}
+		}
+
+		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
+			if (0x8000 <= read_address && read_address < 0xA000) {//VRAM - GBCではバンク0/1で切り替え可能
+				if (VRAM_bank_no__cgb == 0) {
+					return &(gbx_ram.RAM[read_address]);
+				}
+				else {
+					uint16_t relative_addr = read_address - 0x8000;
+
+					return &(VRAM_bank1_data_ptr__cgb[relative_addr]);
+				}
+			}
+			else if (0xD000 <= read_address && read_address < 0xE000) {//WRAM(Bank01~NN) - GBCではバンク切り替え可能(バンク数はカートリッジに依存)
+				uint16_t relative_addr = read_address - 0xD000;
+				return &(WRAM_bank1_7_data_ptr__cgb[0x1000 * (WRAM_bank_no__cgb - 1) + relative_addr]);
+			}
+		}
+
+		if (read_address <= 0x3FFF) {//ROMバンク00
+			return &(gbx_ram.RAM[read_address]);
+		}
+		else if (read_address <= 0x7FFF) {//ROMバンク01-7F
+			//read_value = gbx_ram.RAM[read_address];
+
+			uint8_t* read_ROM_address = get_read_ROM_address();
+			return &(read_ROM_address[read_address - 0x4000]);
+		}
+		else if (0xA000 <= read_address && read_address <= 0xBFFF) {//RAMバンク00-03（存在する場合）
+			if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2のとき
+				return &(*(getMBC2_RAM_address(read_address)));
+			}
+			else {
+				uint8_t* read_SRAM_address = get_read_SRAM_address();
+				return &(read_SRAM_address[read_address - 0xA000]);
+			}
+		}
+		else {//通常読み取り
+			return &(gbx_ram.RAM[read_address]);
+		}
+
+		return nullptr;
+	}
+
 	uint8_t read_RAM_8bit(uint16_t read_address) {
 		uint8_t read_value = 0x00;
 	
-		if (booting_flag == true) {
+		if (booting_flag == true) {//ブートロム中のとき
 			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//カラーでないとき
 				if (read_address < 0x100) {//ブートロム中かつブートロム内のとき
 					read_value = bootrom_256byte[read_address];
@@ -902,6 +1007,63 @@ private:
 
 					return read_value;
 				}
+			}
+		}
+
+		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
+			if (0x8000 <= read_address && read_address < 0xA000) {//VRAM - GBCではバンク0/1で切り替え可能
+				if (VRAM_bank_no__cgb == 0) {
+					read_value = gbx_ram.RAM[read_address];
+				}
+				else {
+					uint16_t relative_addr = read_address - 0x8000;
+
+					read_value = VRAM_bank1_data_ptr__cgb[relative_addr];
+				}
+
+				return read_value;
+			}
+			else if (0xD000 <= read_address && read_address < 0xE000) {//WRAM(Bank01~NN) - GBCではバンク切り替え可能(バンク数はカートリッジに依存)
+				uint16_t relative_addr = read_address - 0xD000;
+				read_value = WRAM_bank1_7_data_ptr__cgb[0x1000 * (WRAM_bank_no__cgb - 1) + relative_addr];
+
+				return read_value;
+			}
+			else if (read_address == 0xFF4F) {//VRAMバンク
+				read_value = ((VRAM_bank_no__cgb & 0b00000001) | 0b11111110);
+
+				//M_debug_printf("read_RAM_8bit()  VRAM_bank_no__cgb = %d\n", read_value);
+
+				return read_value;
+			}
+			else if (read_address == 0xFF70) {//WRAMバンク
+				read_value = (WRAM_bank_no__cgb & 0b00000111);
+
+				//M_debug_printf("read_RAM_8bit()  WRAM_bank_no__cgb = %d\n", read_value);
+
+				return read_value;
+			}
+			else if (read_address == 0xFF68) {//BGパレットインデックス
+				read_value = (cgb_color_list_bg_window_index | ((cgb_color_list_bg_window_auto_inc_flag == true) ? 0b10000000 : 0b00000000));
+				//read_value = cgb_color_list_bg_window_index;
+
+				return read_value;
+			}
+			else if (read_address == 0xFF69) {//BGパレットデータ
+				read_value = cgb_color_list_bg_window[cgb_color_list_bg_window_index];
+
+				return read_value;
+			}
+			else if (read_address == 0xFF6A) {//OBJパレットインデックス
+				read_value = (cgb_color_list_sprite_index | ((cgb_color_list_sprite_auto_inc_flag == true) ? 0b10000000 : 0b00000000));
+				//read_value = cgb_color_list_sprite_index;
+
+				return read_value;
+			}
+			else if (read_address == 0xFF6B) {//OBJパレットデータ
+				read_value = cgb_color_list_sprite[cgb_color_list_sprite_index];
+
+				return read_value;
 			}
 		}
 
@@ -978,7 +1140,7 @@ private:
 	}
 	
 	void write_RAM_8bit(uint16_t write_address, uint8_t value) {
-		if (booting_flag == true) {
+		if (booting_flag == true) {//ブートロム中のとき
 			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//カラーでないとき
 				if (write_address < 0x100) {//ブートロム中かつブートロム内のとき
 					bootrom_256byte[write_address] = value;
@@ -992,6 +1154,94 @@ private:
 
 					return;
 				}
+			}
+		}
+
+		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
+			if (0x8000 <= write_address && write_address < 0xA000) {//VRAM - GBCではバンク0/1で切り替え可能
+				if (VRAM_bank_no__cgb == 0) {
+					gbx_ram.RAM[write_address] = value;
+				}
+				else {
+					uint16_t relative_addr = write_address - 0x8000;
+
+					VRAM_bank1_data_ptr__cgb[relative_addr] = value;
+				}
+
+				return;
+			}
+			else if (0xD000 <= write_address && write_address < 0xE000) {//WRAM(Bank01~NN) - GBCではバンク切り替え可能(バンク数はカートリッジに依存)
+				uint16_t relative_addr = write_address - 0xD000;
+				WRAM_bank1_7_data_ptr__cgb[0x1000 * (WRAM_bank_no__cgb - 1) + relative_addr] = value;
+
+				return;
+			}
+			else if (write_address == 0xFF4F) {//VRAMバンク
+				VRAM_bank_no__cgb = (value & 0b00000001);
+
+				//M_debug_printf("write_RAM_8bit()  VRAM_bank_no__cgb = %d\n", VRAM_bank_no__cgb);
+
+				return;
+			}
+			else if (write_address == 0xFF70) {//WRAMバンク
+				WRAM_bank_no__cgb = (value & 0b00000111);
+				if (WRAM_bank_no__cgb == 0) {
+					WRAM_bank_no__cgb = 1;
+				}
+
+				//M_debug_printf("write_RAM_8bit()  WRAM_bank_no__cgb = %d\n", WRAM_bank_no__cgb);
+
+				return;
+			}
+			else if (write_address == 0xFF68) {//BGパレットインデックス
+				cgb_color_list_bg_window_index = (value & 0b00111111);
+
+				if ((value & 0b10000000) != 0) {
+					cgb_color_list_bg_window_auto_inc_flag = true;
+				}
+				else {
+					cgb_color_list_bg_window_auto_inc_flag = false;
+				}
+
+				return;
+			}
+			else if (write_address == 0xFF69) {//BGパレットデータ
+				cgb_color_list_bg_window[cgb_color_list_bg_window_index] = value;
+
+				if (cgb_color_list_bg_window_auto_inc_flag == true) {
+					cgb_color_list_bg_window_index++;
+
+					if (cgb_color_list_bg_window_index >= 0x40) {
+						cgb_color_list_bg_window_index = 0;
+					}
+				}
+
+				return;
+			}
+			else if (write_address == 0xFF6A) {//OBJパレットインデックス
+				cgb_color_list_sprite_index = (value & 0b00111111);
+
+				if ((value & 0b10000000) != 0) {
+					cgb_color_list_sprite_auto_inc_flag = true;
+				}
+				else {
+					cgb_color_list_sprite_auto_inc_flag = false;
+				}
+
+				return;
+			}
+			else if (write_address == 0xFF6B) {//OBJパレットデータ
+				cgb_color_list_sprite[cgb_color_list_sprite_index] = value;
+
+				if (cgb_color_list_sprite_auto_inc_flag == true) {
+					cgb_color_list_sprite_index++;
+
+					if (cgb_color_list_sprite_index >= 0x40) {
+						cgb_color_list_sprite_index = 0;
+					}
+				}
+
+				return;
 			}
 		}
 
@@ -1392,27 +1642,33 @@ private:
 
 	void push_8bit(uint8_t value) {
 		gbx_register.SP--;
-		gbx_ram.RAM[gbx_register.SP] = value;
+		//gbx_ram.RAM[gbx_register.SP] = value;
+		write_RAM_8bit(gbx_register.SP, value);
 	}
 
 	void push_16bit(uint16_t value) {
 		gbx_register.SP--;
-		gbx_ram.RAM[gbx_register.SP] = (uint8_t)(value >> 8);
+		//gbx_ram.RAM[gbx_register.SP] = (uint8_t)(value >> 8);
+		write_RAM_8bit(gbx_register.SP, (uint8_t)(value >> 8));
 		gbx_register.SP--;
-		gbx_ram.RAM[gbx_register.SP] = (uint8_t)(value & 0b11111111);
+		//gbx_ram.RAM[gbx_register.SP] = (uint8_t)(value & 0b11111111);
+		write_RAM_8bit(gbx_register.SP, (uint8_t)(value & 0b11111111));
 	}
 
 	uint8_t pop_8bit() {
-		uint8_t value = gbx_ram.RAM[gbx_register.SP];
+		//uint8_t value = gbx_ram.RAM[gbx_register.SP];
+		uint8_t value = read_RAM_8bit(gbx_register.SP);
 		gbx_register.SP++;
 
 		return value;
 	}
 
 	uint16_t pop_16bit() {
-		uint8_t low_value = gbx_ram.RAM[gbx_register.SP];
+		//uint8_t low_value = gbx_ram.RAM[gbx_register.SP];
+		uint8_t low_value = read_RAM_8bit(gbx_register.SP);
 		gbx_register.SP++;
-		uint8_t high_value = gbx_ram.RAM[gbx_register.SP];
+		//uint8_t high_value = gbx_ram.RAM[gbx_register.SP];
+		uint8_t high_value = read_RAM_8bit(gbx_register.SP);
 		gbx_register.SP++;
 
 		return (uint16_t)(low_value | (high_value << 8));
@@ -4310,7 +4566,8 @@ private:
 			return &(gbx_register.L);
 		}
 		else if (op_index == 6) {
-			return &(gbx_ram.RAM[gbx_register.HL]);
+			//return &(gbx_ram.RAM[gbx_register.HL]);
+			return get_read_RAM_address___(gbx_register.HL);
 		}
 		//else if (op_index == 7) {
 		else {
@@ -4596,6 +4853,11 @@ private:
 		RTC_Enable_Flag = false;
 		IR_Enable_Flag = false;
 		bank_mode = BankMode::ROM;
+
+		VRAM_bank_no__cgb = 0;
+		memset(VRAM_bank1_data_ptr__cgb, 0, 0x2000);
+		WRAM_bank_no__cgb = 1;
+		memset(WRAM_bank1_7_data_ptr__cgb, 0, 0x1000 * 7);
 	}
 
 	int read_rom_file(const char* filename) {
@@ -4874,6 +5136,45 @@ private:
 		_8bit_bg_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = color_2bit;
 	}
 
+	void draw_backbuffer_bg_1pixel__cgb(uint8_t screen_x, uint8_t screen_y) {
+		//M_debug_printf("screen_x = %d, screen_y = %d\n", screen_x, screen_y);
+
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//背景/ウィンドウが無効であるとき
+			return;
+		}
+
+		bool tilemap_type1_flag;
+		bool tiledata_type1_flag;
+
+		if ((gbx_ram.RAM[0xFF40] & 0b00001000) == 0) {
+			tilemap_type1_flag = false;
+		}
+		else {
+			tilemap_type1_flag = true;
+		}
+
+		if ((gbx_ram.RAM[0xFF40] & 0b00010000) == 0) {
+			tiledata_type1_flag = false;
+		}
+		else {
+			tiledata_type1_flag = true;
+		}
+
+		uint8_t* _8bit_bg_backbuffer_data_256x256__ptr = get_backbuffer_data_256x256_ptr(tilemap_type1_flag, tiledata_type1_flag);
+
+		uint8_t scroll_x = gbx_ram.RAM[0xFF43];
+		uint8_t scroll_y = gbx_ram.RAM[0xFF42];
+
+		uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_bg_backbuffer_data_256x256__ptr[(256 * (uint8_t)(scroll_y + screen_y)) + (uint8_t)(scroll_x + screen_x)];
+		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) != 0) {//背景色でないとき
+			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = true;
+		}
+		//else {
+		//	backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;
+		//}
+		_8bit_bg_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = pixel_priority_1bit_palette_3bit_color_2bit;
+	}
+
 
 	/*
 	1ラインごとにウインドウの内部情報を更新するためのやつ
@@ -4940,6 +5241,59 @@ private:
 		window_backbuffer_draw_internal_flag_x = true;//このラインでウインドウが描画されたフラグをたてる
 	}
 
+	void draw_backbuffer_window_1pixel__cgb(uint8_t screen_x, uint8_t screen_y) {
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//背景/ウィンドウが無効であるとき
+			return;
+		}
+
+		if ((gbx_ram.RAM[0xFF40] & 0b00100000) == 0) {//ウィンドウが無効であるとき
+			return;
+		}
+
+		bool tilemap_type1_flag;
+		bool tiledata_type1_flag;
+
+		if ((gbx_ram.RAM[0xFF40] & 0b01000000) == 0) {
+			tilemap_type1_flag = false;
+		}
+		else {
+			tilemap_type1_flag = true;
+		}
+
+		if ((gbx_ram.RAM[0xFF40] & 0b00010000) == 0) {
+			tiledata_type1_flag = false;
+		}
+		else {
+			tiledata_type1_flag = true;
+		}
+
+		uint8_t* _8bit_window_backbuffer_data_256x256__ptr = get_backbuffer_data_256x256_ptr(tilemap_type1_flag, tiledata_type1_flag);
+
+		uint8_t window_x = gbx_ram.RAM[0xFF4B] - 7;
+		uint8_t window_y = gbx_ram.RAM[0xFF4A];
+
+		if (screen_x < window_x ||
+			screen_y < window_y)
+		{
+			//透明の部分
+
+			//_8bit_window_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = 0xFF;
+
+			return;
+		}
+
+		uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_window_backbuffer_data_256x256__ptr[(uint8_t)(screen_x - window_x) + ((uint8_t)window_backbuffer_draw_internal_counter_y/*(screen_y - window_y)*/ * 256)];
+		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) != 0) {//背景色でないとき
+			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = true;
+		}
+		//else {
+		//	backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;
+		//}
+		_8bit_window_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = pixel_priority_1bit_palette_3bit_color_2bit;
+
+		window_backbuffer_draw_internal_flag_x = true;//このラインでウインドウが描画されたフラグをたてる
+	}
+
 	void _abstruct__create_256_256_backbuffer(uint8_t* backbuffer_data_ptr, bool tilemap_type1_flag, bool tiledata_type1_flag) {
 		for (int i = 0; i < 32; i++) {
 			for (int j = 0; j < 32; j++) {
@@ -4953,10 +5307,14 @@ private:
 
 				uint8_t* tile_data_ptr;
 				if (tiledata_type1_flag == true) {
-					tile_data_ptr = &(gbx_ram.RAM[0x8000]);
+					//tile_data_ptr = &(gbx_ram.RAM[0x8000]);
+
+					tile_data_ptr = get_read_RAM_address___(0x8000);
 				}
 				else {
-					tile_data_ptr = &(gbx_ram.RAM[0x9000]);
+					//tile_data_ptr = &(gbx_ram.RAM[0x9000]);
+
+					tile_data_ptr = get_read_RAM_address___(0x9000);
 				}
 
 				//M_debug_printf("[index = %d]tile_no = %c[%02x]\n", (j + i * 32), tile_no, tile_no);
@@ -4982,6 +5340,117 @@ private:
 		}
 	}
 
+	uint8_t* get_background_map_attribute_data_ptr1() {
+		return &(VRAM_bank1_data_ptr__cgb[0x1800]);
+	}
+
+	uint8_t* get_background_map_attribute_data_ptr2() {
+		return &(VRAM_bank1_data_ptr__cgb[0x1C00]);
+	}
+
+	uint8_t* get_tiledata_bank0_ptr() {
+		return (&(gbx_ram.RAM[0x8000]));
+	}
+
+	uint8_t* get_tiledata_bank1_ptr() {
+		return VRAM_bank1_data_ptr__cgb;
+	}
+
+	void _abstruct__create_256_256_backbuffer__cgb(uint8_t* backbuffer_data_ptr, bool tilemap_type1_flag, bool tiledata_type1_flag) {
+		uint8_t* tile_palette_3bit_data_ptr;
+		if (tilemap_type1_flag == false) {
+			tile_palette_3bit_data_ptr = get_background_map_attribute_data_ptr1();
+		}
+		else {
+			tile_palette_3bit_data_ptr = get_background_map_attribute_data_ptr2();
+		}
+
+		for (int i = 0; i < 32; i++) {
+			for (int j = 0; j < 32; j++) {
+				uint8_t tilemap_attribute = tile_palette_3bit_data_ptr[j + i * 32];
+				uint8_t tile_palette_3bit = (tilemap_attribute & 0b111);
+				bool tile_data_bank1_flag = ((tilemap_attribute & 0b00001000) != 0) ? true : false;
+				bool reverse_x_flag = ((tilemap_attribute & 0b00100000) != 0) ? true : false;
+				bool reverse_y_flag = ((tilemap_attribute & 0b01000000) != 0) ? true : false;
+				bool max_priority_flag = ((tilemap_attribute & 0b10000000) != 0) ? true : false;
+
+				int8_t tile_no;//符号あり
+				if (tilemap_type1_flag == false) {
+					tile_no = (int8_t)(gbx_ram.RAM[0x9800 + (j + i * 32)]);
+				}
+				else {
+					tile_no = (int8_t)(gbx_ram.RAM[0x9C00 + (j + i * 32)]);
+				}
+
+				//uint8_t* tile_data_ptr;
+				//if (tiledata_type1_flag == true) {
+				//	//tile_data_ptr = &(gbx_ram.RAM[0x8000]);
+				//
+				//	tile_data_ptr = get_read_RAM_address___(0x8000);
+				//}
+				//else {
+				//	//tile_data_ptr = &(gbx_ram.RAM[0x9000]);
+				//
+				//	tile_data_ptr = get_read_RAM_address___(0x9000);
+				//}
+				uint8_t* tile_data_ptr;
+				if (tile_data_bank1_flag == false) {
+					tile_data_ptr = get_tiledata_bank0_ptr();
+				}
+				else {
+					tile_data_ptr = get_tiledata_bank1_ptr();
+				}
+				//if (tiledata_type1_flag == true) {
+				//
+				//}
+				//else {
+				if (tiledata_type1_flag == false) {
+					tile_data_ptr += 0x1000;
+				}
+
+				//M_debug_printf("[index = %d]tile_no = %c[%02x]\n", (j + i * 32), tile_no, tile_no);
+
+				for (int y = 0; y < 8; y++) {
+					for (int x = 0; x < 8; x++) {
+						uint8_t pixel_priority_1bit_palette_3bit_color_2bit;
+
+						uint8_t x_offset;
+						if (reverse_x_flag == false) {
+							x_offset = (7 - x);
+						}
+						else {
+							x_offset = x;
+						}
+						uint8_t y_offset;
+						if (reverse_y_flag == false) {
+							y_offset = y;
+						}
+						else {
+							y_offset = (7 - y);
+						}
+						if (tiledata_type1_flag == true) {//タイル番号の符号なしで計算する
+							pixel_priority_1bit_palette_3bit_color_2bit = (((tile_data_ptr[0x10 * (uint8_t)tile_no + y_offset * 2]) >> x_offset) & 0b00000001) |
+								((((tile_data_ptr[0x10 * (uint8_t)tile_no + y_offset * 2 + 1]) >> x_offset) & 0b00000001) << 1);
+						}
+						else {//タイル番号の符号ありで計算する
+							pixel_priority_1bit_palette_3bit_color_2bit = (((tile_data_ptr[0x10 * tile_no + y_offset * 2]) >> x_offset) & 0b00000001) |
+								((((tile_data_ptr[0x10 * tile_no + y_offset * 2 + 1]) >> x_offset) & 0b00000001) << 1);
+						}
+
+						pixel_priority_1bit_palette_3bit_color_2bit |= (tile_palette_3bit << 2);
+
+						if (max_priority_flag == true) {
+							pixel_priority_1bit_palette_3bit_color_2bit |= 0b00100000;
+						}
+
+						backbuffer_data_ptr[(8 * 256 * i + 256 * y) + (j * 8 + x)] = pixel_priority_1bit_palette_3bit_color_2bit;
+					}
+				}
+			}
+
+		}
+	}
+
 	void create_all_256x256_backbuffer() {
 		/*
 		uint8_t _8bit_backbuffer_data_256x256__mtype0_dtype0[256 * 256];
@@ -4990,14 +5459,25 @@ private:
 		uint8_t _8bit_backbuffer_data_256x256__mtype1_dtype1[256 * 256];
 		*/
 
-		_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype0_dtype0, false, false);
-		_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype0_dtype1, false, true);
-		_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype1_dtype0, true, false);
-		_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype1_dtype1, true, true);
+		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//カラーでないとき
+			_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype0_dtype0, false, false);
+			_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype0_dtype1, false, true);
+			_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype1_dtype0, true, false);
+			_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype1_dtype1, true, true);
+		}
+		else {
+			_abstruct__create_256_256_backbuffer__cgb(_8bit_backbuffer_data_256x256__mtype0_dtype0, false, false);
+			_abstruct__create_256_256_backbuffer__cgb(_8bit_backbuffer_data_256x256__mtype0_dtype1, false, true);
+			_abstruct__create_256_256_backbuffer__cgb(_8bit_backbuffer_data_256x256__mtype1_dtype0, true, false);
+			_abstruct__create_256_256_backbuffer__cgb(_8bit_backbuffer_data_256x256__mtype1_dtype1, true, true);
+		}
 	}
 
+	//==================================================================================
+
 	void execute_draw_screenbuffer_1sprite_8x8_data(int32_t sprite_x, int32_t sprite_y, uint8_t tile_no, bool sprite_reverse_x_flag, bool sprite_reverse_y_flag, bool palette_OBP1_flag, bool sprite_max_priority_flag) {
-		uint8_t* tile_data_ptr = &(gbx_ram.RAM[0x8000]);
+		//uint8_t* tile_data_ptr = &(gbx_ram.RAM[0x8000]);
+		uint8_t* tile_data_ptr = get_read_RAM_address___(0x8000);
 
 		for (int y = 0; y < 8; y++) {
 			for (int x = 0; x < 8; x++) {
@@ -5042,7 +5522,6 @@ private:
 			}
 		}
 	}
-
 
 	struct Sprite_Info {
 		uint32_t x = 0;
@@ -5125,6 +5604,159 @@ private:
 			}
 		}
 	}
+
+	//=======================================================================
+	//=======================================================================
+
+	void execute_draw_screenbuffer_1sprite_8x8_data__cgb(int32_t sprite_x, int32_t sprite_y, uint8_t tile_no, bool sprite_reverse_x_flag, bool sprite_reverse_y_flag, bool sprite_max_priority_flag, bool tile_data_bank1_flag, uint8_t sprite_palette_no_3bit) {
+		//uint8_t* tile_data_ptr = &(gbx_ram.RAM[0x8000]);
+		//uint8_t* tile_data_ptr = get_read_RAM_address___(0x8000);
+		uint8_t* tile_data_ptr;
+		if (tile_data_bank1_flag == false) {
+			tile_data_ptr = get_tiledata_bank0_ptr();
+		}
+		else {
+			tile_data_ptr = get_tiledata_bank1_ptr();
+		}
+
+		for (int y = 0; y < 8; y++) {
+			for (int x = 0; x < 8; x++) {
+				int32_t offset_X = sprite_x + x;
+				int32_t offset_Y = sprite_y + y;
+
+				if (offset_X < 0 || offset_Y < 0 || GBX_WIDTH <= offset_X || GBX_HEIGHT <= offset_Y) {//画面外は描画しない
+					continue;
+				}
+
+				uint8_t pixel_color_x_shift_bit;
+				if (sprite_reverse_x_flag == true) {
+					pixel_color_x_shift_bit = x;
+				}
+				else {
+					pixel_color_x_shift_bit = (7 - x);
+				}
+				uint8_t pixel_color_y_shift_bit;
+				if (sprite_reverse_y_flag == true) {
+					pixel_color_y_shift_bit = (7 - y);
+				}
+				else {
+					pixel_color_y_shift_bit = y;
+				}
+				uint8_t pixel_priority_1bit_palette_3bit_color_2bit;
+				pixel_priority_1bit_palette_3bit_color_2bit = (((tile_data_ptr[0x10 * tile_no + pixel_color_y_shift_bit * 2]) >> pixel_color_x_shift_bit) & 0b00000001) |
+					((((tile_data_ptr[0x10 * tile_no + pixel_color_y_shift_bit * 2 + 1]) >> pixel_color_x_shift_bit) & 0b00000001) << 1);
+
+				//if (palette_OBP1_flag == true) {//パレットが1のときは最上位ビットを1にしておく
+				//	pixel_color_2bit |= 0b10000000;
+				//}
+				//
+				//if (sprite_max_priority_flag == false) {//優先順位が低いときは最上位から２番目のビットを1にしておく
+				//	pixel_color_2bit |= 0b01000000;
+				//}
+				//
+				//if ((pixel_color_2bit & 0b00111111) == 0) {//透明部分はとばす
+				//	continue;
+				//}
+
+				pixel_priority_1bit_palette_3bit_color_2bit |= ((sprite_palette_no_3bit & 0b111) << 2);
+				if (sprite_max_priority_flag == true) {//優先順位を記録しておく
+					pixel_priority_1bit_palette_3bit_color_2bit |= 0b00100000;
+				}
+				if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) == 0) {//透明部分はとばす
+					continue;
+				}
+
+				_8bit_sprite_screen_data_160x144[offset_X + (offset_Y * GBX_WIDTH)] = pixel_priority_1bit_palette_3bit_color_2bit;
+			}
+		}
+	}
+
+
+	struct Sprite_Info_CGB {
+		uint32_t x = 0;
+		uint32_t y = 0;
+		uint8_t tile_no = 0;
+		bool sprite_max_priority_flag = false;
+		bool sprite_reverse_y_flag = false;
+		bool sprite_reverse_x_flag = false;
+		bool tile_data_bank1_flag = false;
+		uint8_t sprite_palette_no_3bit = 0;
+		bool size_8x16_flag = false;
+	};
+	vector<Sprite_Info_CGB> sprite_info_list__cgb;
+	void init_sprite_info_list__cgb() {
+		sprite_info_list__cgb.clear();
+		sprite_info_list__cgb.shrink_to_fit();
+	}
+	/*
+	画面に表示されない16ラインにスプライトがあるかチェックする
+	*/
+	void check_sprite_upside_16line__cgb() {
+		for (int y = -16; y < 0; y++) {
+			for (int x = -8; x < GBX_WIDTH; x++) {//X座標左端もチェックする
+				create_screen_sprite_data__1pixel__cgb(x, y);
+			}
+		}
+	}
+
+	void create_screen_sprite_data__1pixel__cgb(uint32_t pixel_x, uint32_t pixel_y) {
+		if ((gbx_ram.RAM[0xFF40] & 0b00000010) == 0) {//スプライトが無効なとき
+			return;
+		}
+
+		for (int i = 0; i < 40; i++) {
+			Sprite_Info_CGB s_info;
+
+			/*
+			s_info.x, s_info.x はスクリーンの座標
+			*/
+			s_info.y = (gbx_ram.RAM[0xFE00 + (4 * (39 - i))] - 16);
+			s_info.x = (gbx_ram.RAM[0xFE00 + (4 * (39 - i)) + 1] - 8);
+			if (!(pixel_x == s_info.x && pixel_y == s_info.y)) {
+				continue;
+			}
+			s_info.tile_no = gbx_ram.RAM[0xFE00 + (4 * (39 - i)) + 2];
+			uint8_t attribute = gbx_ram.RAM[0xFE00 + (4 * (39 - i)) + 3];
+
+			s_info.sprite_max_priority_flag = ((attribute & 0b10000000) != 0) ? false : true;
+			s_info.sprite_reverse_y_flag = ((attribute & 0b01000000) != 0) ? true : false;
+			s_info.sprite_reverse_x_flag = ((attribute & 0b00100000) != 0) ? true : false;
+			s_info.tile_data_bank1_flag = ((attribute & 0b00001000) != 0) ? true : false;
+			s_info.sprite_palette_no_3bit = (attribute & 0b111);
+
+			if ((gbx_ram.RAM[0xFF40] & 0b00000100) == 0) {//8x8のとき
+				s_info.size_8x16_flag = false;
+			}
+			else {//8x16のとき
+				s_info.size_8x16_flag = true;
+			}
+
+			sprite_info_list__cgb.push_back(s_info);
+
+		}
+	}
+
+	void draw_screenbuffer_sprite_data__cgb() {
+		for (int i = 0; i < sprite_info_list__cgb.size(); i++) {
+			Sprite_Info_CGB s_info = sprite_info_list__cgb[i];
+
+			if (s_info.size_8x16_flag == false) {//8x8のとき
+				execute_draw_screenbuffer_1sprite_8x8_data__cgb(s_info.x, s_info.y, s_info.tile_no, s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.sprite_max_priority_flag, s_info.tile_data_bank1_flag, s_info.sprite_palette_no_3bit);
+			}
+			else {//8x16のとき
+				if (s_info.sprite_reverse_y_flag == false) {
+					execute_draw_screenbuffer_1sprite_8x8_data__cgb(s_info.x, s_info.y, (s_info.tile_no & 0b11111110), s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.sprite_max_priority_flag, s_info.tile_data_bank1_flag, s_info.sprite_palette_no_3bit);
+					execute_draw_screenbuffer_1sprite_8x8_data__cgb(s_info.x, s_info.y + 8, (uint8_t)(s_info.tile_no | 0b00000001), s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.sprite_max_priority_flag, s_info.tile_data_bank1_flag, s_info.sprite_palette_no_3bit);
+				}
+				else {
+					execute_draw_screenbuffer_1sprite_8x8_data__cgb(s_info.x, s_info.y, (uint8_t)(s_info.tile_no | 0b00000001), s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.sprite_max_priority_flag, s_info.tile_data_bank1_flag, s_info.sprite_palette_no_3bit);
+					execute_draw_screenbuffer_1sprite_8x8_data__cgb(s_info.x, s_info.y + 8, (s_info.tile_no & 0b11111110), s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.sprite_max_priority_flag, s_info.tile_data_bank1_flag, s_info.sprite_palette_no_3bit);
+				}
+			}
+		}
+	}
+
+	//==================================================================================
 
 	void update_LCD_STAT() {
 		if ((gbx_ram.RAM[0xFF40] & 0b10000000) == 0) {//LCD有効フラグが無効のとき
@@ -5210,16 +5842,32 @@ private:
 			//M_debug_printf("ppu_line_x = %d, ppu_line_y = %d\n", ppu_line_x, ppu_line_y);
 
 			if (ppu_line_x == 0 && ppu_line_y == 0) {//初回は上端にあるスプライトのチェックをする
-				check_sprite_upside_16line();
+				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+					check_sprite_upside_16line();
+				}
+				else {
+					check_sprite_upside_16line__cgb();
+				}
 			}
 
 			//描画中
 			if ((80 <= ppu_line_x && ppu_line_x < 240) && ppu_line_y < 144) {
-				draw_backbuffer_bg_1pixel(ppu_line_x - 80, ppu_line_y);
-				draw_backbuffer_window_1pixel(ppu_line_x - 80, ppu_line_y);
+				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+					draw_backbuffer_bg_1pixel(ppu_line_x - 80, ppu_line_y);
+					draw_backbuffer_window_1pixel(ppu_line_x - 80, ppu_line_y);
+				}
+				else {
+					draw_backbuffer_bg_1pixel__cgb(ppu_line_x - 80, ppu_line_y);
+					draw_backbuffer_window_1pixel__cgb(ppu_line_x - 80, ppu_line_y);
+				}
 			}
 			if (((80 - 8) <= ppu_line_x && ppu_line_x < 240) && ppu_line_y < 144) {//X座標左端もチェックする
-				create_screen_sprite_data__1pixel(ppu_line_x - 80, ppu_line_y);
+				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+					create_screen_sprite_data__1pixel(ppu_line_x - 80, ppu_line_y);
+				}
+				else {
+					create_screen_sprite_data__1pixel__cgb(ppu_line_x - 80, ppu_line_y);
+				}
 			}
 
 			ppu_line_x++;
@@ -5365,31 +6013,6 @@ private:
 		pTexture->Release();
 	}
 
-	//LCDオフのときの画面の描画
-	void draw_screen_LCD_off(MyDirectXSystem* myDirectXSystem) {
-		LPDIRECT3DTEXTURE9 pTexture;
-		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
-			return;
-		}
-		D3DLOCKED_RECT lockedRect;
-		pTexture->LockRect(0, &lockedRect, NULL, 0);
-		DWORD* pTextureBuffer = (DWORD*)lockedRect.pBits;
-
-		for (int y = 0; y < GBX_HEIGHT; y++) {
-			for (int x = 0; x < GBX_WIDTH; x++) {
-				//pTextureBuffer[y * GBX_WIDTH + x] = 0xFF4e454a;
-				pTextureBuffer[y * GBX_WIDTH + x] = GB_PALETTE_0;
-			}
-		}
-
-		pTexture->UnlockRect(0);
-
-		//MyDirectXDraw::draw_texture_base_leftup(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0);
-		MyDirectXDraw::draw_texture_base_leftup_enable_size(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0, 4.0);
-
-		pTexture->Release();
-	}
-
 #ifdef GBX_EMU_DEBUG
 	void _debug_draw_screen_256x256_backbuffer(MyDirectXSystem* myDirectXSystem, uint8_t buffer_type) {
 		LPDIRECT3DTEXTURE9 pTexture;
@@ -5428,6 +6051,206 @@ private:
 		pTexture->Release();
 	}
 #endif
+
+
+	//====================================================================================
+
+	void draw_screen_bg__cgb(MyDirectXSystem* myDirectXSystem) {
+		LPDIRECT3DTEXTURE9 pTexture;
+		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
+			return;
+		}
+		D3DLOCKED_RECT lockedRect;
+		pTexture->LockRect(0, &lockedRect, NULL, 0);
+		DWORD* pTextureBuffer = (DWORD*)lockedRect.pBits;
+
+		for (int y = 0; y < GBX_HEIGHT; y++) {
+			for (int x = 0; x < GBX_WIDTH; x++) {
+				uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_bg_screen_data_160x144[y * GBX_WIDTH + x];
+				uint16_t color_2byte = get_bg_window_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
+
+				uint8_t r_5bit = color_2byte & 0b11111;
+				uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+				uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+				pTextureBuffer[y * GBX_WIDTH + x] = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+			}
+		}
+
+		pTexture->UnlockRect(0);
+
+		//MyDirectXDraw::draw_texture_base_leftup(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0);
+		MyDirectXDraw::draw_texture_base_leftup_enable_size(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0, 4.0);
+
+		pTexture->Release();
+	}
+
+	void draw_screen_window__cgb(MyDirectXSystem* myDirectXSystem) {
+		LPDIRECT3DTEXTURE9 pTexture;
+		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
+			return;
+		}
+		D3DLOCKED_RECT lockedRect;
+		pTexture->LockRect(0, &lockedRect, NULL, 0);
+		DWORD* pTextureBuffer = (DWORD*)lockedRect.pBits;
+
+		for (int y = 0; y < GBX_HEIGHT; y++) {
+			for (int x = 0; x < GBX_WIDTH; x++) {
+				uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_window_screen_data_160x144[y * GBX_WIDTH + x];
+				DWORD color;
+				if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//透明部分の時
+					color = 0x00000000;
+				}
+				else {
+					uint16_t color_2byte = get_bg_window_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
+
+					uint8_t r_5bit = color_2byte & 0b11111;
+					uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+					uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+					color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+				}
+
+				pTextureBuffer[y * GBX_WIDTH + x] = color;
+			}
+		}
+
+		pTexture->UnlockRect(0);
+
+		//MyDirectXDraw::draw_texture_base_leftup(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0);
+		MyDirectXDraw::draw_texture_base_leftup_enable_size(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0, 4.0);
+
+		pTexture->Release();
+	}
+
+	void draw_screen_sprite__cgb(MyDirectXSystem* myDirectXSystem) {
+		LPDIRECT3DTEXTURE9 pTexture;
+		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
+			return;
+		}
+		D3DLOCKED_RECT lockedRect;
+		pTexture->LockRect(0, &lockedRect, NULL, 0);
+		DWORD* pTextureBuffer = (DWORD*)lockedRect.pBits;
+
+		for (int y = 0; y < GBX_HEIGHT; y++) {
+			for (int x = 0; x < GBX_WIDTH; x++) {
+				uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_sprite_screen_data_160x144[y * GBX_WIDTH + x];
+				DWORD color;
+
+				if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00100000) == 0) {//優先順位が低いとき
+					if (backbuffer_sprite_mask[y * GBX_WIDTH + x] == true || pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//背景色でない場合
+						color = 0x00000000;
+					}
+					else {
+						//color = get_sprite_palette(color_no & 0b00111111, ((color_no & 0b10000000) != 0) ? true : false);
+						uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
+						uint8_t r_5bit = color_2byte & 0b11111;
+						uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+						uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+						color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+					}
+				}
+				else {
+					if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//透明部分の時
+						color = 0x00000000;
+					}
+					else {
+						//color = get_sprite_palette(color_no & 0b00111111, ((color_no & 0b10000000) != 0) ? true : false);
+						uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
+						uint8_t r_5bit = color_2byte & 0b11111;
+						uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+						uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+						color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+					}
+				}
+
+				pTextureBuffer[y * GBX_WIDTH + x] = color;
+			}
+		}
+
+		pTexture->UnlockRect(0);
+
+		//MyDirectXDraw::draw_texture_base_leftup(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0);
+		MyDirectXDraw::draw_texture_base_leftup_enable_size(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0, 4.0);
+
+		pTexture->Release();
+	}
+
+	//===================================================================
+
+	//LCDオフのときの画面の描画
+	void draw_screen_LCD_off(MyDirectXSystem* myDirectXSystem) {
+		LPDIRECT3DTEXTURE9 pTexture;
+		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
+			return;
+		}
+		D3DLOCKED_RECT lockedRect;
+		pTexture->LockRect(0, &lockedRect, NULL, 0);
+		DWORD* pTextureBuffer = (DWORD*)lockedRect.pBits;
+
+		for (int y = 0; y < GBX_HEIGHT; y++) {
+			for (int x = 0; x < GBX_WIDTH; x++) {
+				//pTextureBuffer[y * GBX_WIDTH + x] = 0xFF4e454a;
+				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+					pTextureBuffer[y * GBX_WIDTH + x] = GB_PALETTE_0;
+				}
+				else {
+					pTextureBuffer[y * GBX_WIDTH + x] = 0xFFFFFFFF;
+				}
+			}
+		}
+
+		pTexture->UnlockRect(0);
+
+		//MyDirectXDraw::draw_texture_base_leftup(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0);
+		MyDirectXDraw::draw_texture_base_leftup_enable_size(myDirectXSystem, pTexture, (float)GBX_WIDTH, (float)GBX_HEIGHT, 0, 0, 4.0);
+
+		pTexture->Release();
+	}
+
+#ifdef GBX_EMU_DEBUG
+	void __debug_draw_all_palette__cgb(MyDirectXSystem* myDirectXSystem) {
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 4; j++) {
+				uint16_t color_2byte = get_bg_window_palette__cgb(i, j);
+
+				uint8_t r_5bit = color_2byte & 0b11111;
+				uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+				uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+				DWORD color;
+				color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+
+				//M_debug_printf("[%d][%d] r = 0x%02x, g = 0x%02x, b = 0x%02x, COLOR = 0x%08x\n", j, i, r_5bit, g_5bit, b_5bit, color);
+
+				MyDirectXDraw::draw_box_leftup(myDirectXSystem, j * 20, i * 20, j * 20 + 20, i * 20 + 20, color);
+			}
+		}
+
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 4; j++) {
+				uint16_t color_2byte = get_sprite_palette__cgb(i, j);
+
+				uint8_t r_5bit = color_2byte & 0b11111;
+				uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+				uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+				DWORD color;
+				color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+
+				//M_debug_printf("[%d][%d] r = 0x%02x, g = 0x%02x, b = 0x%02x, COLOR = 0x%08x\n", j, i, r_5bit, g_5bit, b_5bit, color);
+
+				MyDirectXDraw::draw_box_leftup(myDirectXSystem, 100 + j * 20, 10 + i * 20, 100 + j * 20 + 20, 10 + i * 20 + 20, color);
+			}
+		}
+	}
+#endif
+
+
+	//====================================================================================
+
 
 	/*
 	割り込みを実行したときはtrueをかえす
@@ -5580,7 +6403,12 @@ public:
 	void execute_all(MyDirectXSystem* myDirectXSystem) {
 		memset(backbuffer_sprite_mask, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
 
-		init_sprite_info_list();
+		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+			init_sprite_info_list();
+		}
+		else {
+			init_sprite_info_list__cgb();
+		}
 		memset(_8bit_sprite_screen_data_160x144, 0xFF, GBX_WIDTH * GBX_HEIGHT);//スプライトのバックバッファを全部透明にする
 
 		memset(_8bit_window_screen_data_160x144, 0xFF, GBX_WIDTH * GBX_HEIGHT);//ウインドウのバックバッファを全部透明にする
@@ -5675,16 +6503,28 @@ public:
 
 			if (ppu_line_y >= 154) {//Vblank終了
 				create_all_256x256_backbuffer();
-				draw_screenbuffer_sprite_data();
+				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+					draw_screenbuffer_sprite_data();
+				}
+				else {
+					draw_screenbuffer_sprite_data__cgb();
+				}
 
 				break;
 			}
 		}
 
 		if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCD有効フラグが有効のとき
-			draw_screen_bg(myDirectXSystem);
-			draw_screen_window(myDirectXSystem);
-			draw_screen_sprite(myDirectXSystem);
+			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+				draw_screen_bg(myDirectXSystem);
+				draw_screen_window(myDirectXSystem);
+				draw_screen_sprite(myDirectXSystem);
+			}
+			else {
+				draw_screen_bg__cgb(myDirectXSystem);
+				draw_screen_window__cgb(myDirectXSystem);
+				draw_screen_sprite__cgb(myDirectXSystem);
+			}
 		}
 		else {//LCD有効フラグが無効のとき
 			draw_screen_LCD_off(myDirectXSystem);
@@ -5695,6 +6535,8 @@ public:
 		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 1);
 		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 2);
 		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 3);
+
+		//__debug_draw_all_palette__cgb(myDirectXSystem);
 #endif
 
 		//M_debug_printf("End 1 frame...\n");
