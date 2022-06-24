@@ -22,6 +22,16 @@ class GameBoyColor
 {
 private:
 
+	//エミュレータ内のRAMをコピーする際に使う関数
+	//バンクが存在するなどの理由でこれを使わないとRAM内は正常にコピーできない
+	void My_Emulator_RAM_memcpy(uint16_t emu_RAM_dst_address, uint16_t emu_RAM_src_address, uint16_t size) {
+		for (int i = 0; i < size; i++) {
+			write_RAM_8bit(emu_RAM_dst_address + i, read_RAM_8bit(emu_RAM_src_address + i));
+		}
+	}
+
+
+
 	bool FATAL_ERROR_FLAG = false;//ロードなどで続行不能なエラーが発生したか
 
 
@@ -990,6 +1000,28 @@ private:
 		return nullptr;
 	}
 
+	uint16_t HDMA_src_addr = 0;
+	uint16_t HDMA_dst_addr = 0;
+
+	bool HBlank_DMA_Flag = false;//HBLANKDMAをしているか
+	uint16_t HBlank_DMA_Remain_Size = 0x0000;//HBLANKDMAの残りのサイズ
+	void execute_HBLANK_DMA() {
+		if (HBlank_DMA_Flag == false) {//HBLANKDMAをしていないとき
+			return;
+		}
+
+		//memcpy(&(gbx_ram.RAM[HDMA_dst_addr]), &(gbx_ram.RAM[HDMA_src_addr]), 0x10);
+		My_Emulator_RAM_memcpy(HDMA_dst_addr, HDMA_src_addr, 0x10);
+		HDMA_src_addr += 0x10;
+		HDMA_dst_addr += 0x10;
+		HBlank_DMA_Remain_Size -= 0x10;
+
+		if (HBlank_DMA_Remain_Size == 0x0000) {
+			HBlank_DMA_Flag = false;
+			HBlank_DMA_Remain_Size = 0x0000;
+		}
+	}
+
 	uint8_t read_RAM_8bit(uint16_t read_address) {
 		uint8_t read_value = 0x00;
 	
@@ -1062,6 +1094,22 @@ private:
 			}
 			else if (read_address == 0xFF6B) {//OBJパレットデータ
 				read_value = cgb_color_list_sprite[cgb_color_list_sprite_index];
+
+				return read_value;
+			}
+			else if (read_address == 0xFF55) {//HDMA制御レジスタ (R/W)
+				if (HBlank_DMA_Flag == false) {//アクティブでないとき
+					if (HBlank_DMA_Remain_Size != 0x0000) {//HBLANK_DMAを中断した場合
+						read_value = ((HBlank_DMA_Remain_Size / 0x10) - 1);
+						read_value |= 0b10000000;//bit7は1とする
+					}
+					else {
+						read_value = 0xFF;
+					}
+				}
+				else {//アクティブなとき
+					read_value = (((HBlank_DMA_Remain_Size / 0x10) - 1) & 0b01111111);
+				}
 
 				return read_value;
 			}
@@ -1138,7 +1186,7 @@ private:
 	
 		return (read_RAM_8bit(read_address) | (read_RAM_8bit(read_address + 1) << 8));
 	}
-	
+
 	void write_RAM_8bit(uint16_t write_address, uint8_t value) {
 		if (booting_flag == true) {//ブートロム中のとき
 			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//カラーでないとき
@@ -1239,6 +1287,48 @@ private:
 					if (cgb_color_list_sprite_index >= 0x40) {
 						cgb_color_list_sprite_index = 0;
 					}
+				}
+
+				return;
+			}
+			else if (write_address == 0xFF51) {//HDMAソースレジスタ上位8bit (W)
+				HDMA_src_addr = (value << 8) | (HDMA_src_addr & 0b11111111);
+
+				return;
+			}
+			else if (write_address == 0xFF52) {//HDMAソースレジスタ下位8bit (W)
+				HDMA_src_addr = (HDMA_src_addr & 0b1111111100000000) | (value & 0b11110000);
+
+				return;
+			}
+			else if (write_address == 0xFF53) {//HDMAターゲットレジスタ上位8bit (W)
+				HDMA_dst_addr = ((value & 0b00011111) << 8) | (HDMA_dst_addr & 0b11111111);
+				HDMA_dst_addr |= 0b1000000000000000;
+
+				return;
+			}
+			else if (write_address == 0xFF54) {//HDMAターゲットレジスタ下位8bit (W)
+				HDMA_dst_addr = (HDMA_dst_addr & 0b1111111100000000) | (value & 0b11110000);
+
+				return;
+			}
+			else if (write_address == 0xFF55) {//HDMA制御レジスタ (R/W)
+				uint16_t transfer_size = ((value & 0b01111111) + 1) * 0x10;
+
+				if ((value & 0b10000000) == 0) {//(汎用DMA, GDMA)
+					HBlank_DMA_Flag = false;
+
+					//memcpy(&(gbx_ram.RAM[HDMA_dst_addr]), &(gbx_ram.RAM[HDMA_src_addr]), transfer_size);
+					My_Emulator_RAM_memcpy(HDMA_dst_addr, HDMA_src_addr, transfer_size);
+
+					//M_debug_printf("GDMA!!! dst = 0x%04x, src = 0x%04x, size = 0x%x\n", HDMA_dst_addr, HDMA_src_addr, transfer_size);
+				}
+				else {//(HBlank DMA)
+					HBlank_DMA_Flag = true;
+
+					HBlank_DMA_Remain_Size = transfer_size;
+
+					//M_debug_printf("HBlank_DMA dst = 0x%04x, src = 0x%04x, size = 0x%x\n", HDMA_dst_addr, HDMA_src_addr, transfer_size);
 				}
 
 				return;
@@ -5139,10 +5229,6 @@ private:
 	void draw_backbuffer_bg_1pixel__cgb(uint8_t screen_x, uint8_t screen_y) {
 		//M_debug_printf("screen_x = %d, screen_y = %d\n", screen_x, screen_y);
 
-		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//背景/ウィンドウが無効であるとき
-			return;
-		}
-
 		bool tilemap_type1_flag;
 		bool tiledata_type1_flag;
 
@@ -5172,6 +5258,9 @@ private:
 		//else {
 		//	backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;
 		//}
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//背景/ウィンドウのマスター優先度のビットが0のとき
+			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;//優先順位を強制的に下げる
+		}
 		_8bit_bg_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = pixel_priority_1bit_palette_3bit_color_2bit;
 	}
 
@@ -5242,10 +5331,6 @@ private:
 	}
 
 	void draw_backbuffer_window_1pixel__cgb(uint8_t screen_x, uint8_t screen_y) {
-		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//背景/ウィンドウが無効であるとき
-			return;
-		}
-
 		if ((gbx_ram.RAM[0xFF40] & 0b00100000) == 0) {//ウィンドウが無効であるとき
 			return;
 		}
@@ -5289,6 +5374,9 @@ private:
 		//else {
 		//	backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;
 		//}
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//背景/ウィンドウのマスター優先度のビットが0のとき
+			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;//優先順位を強制的に下げる
+		}
 		_8bit_window_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = pixel_priority_1bit_palette_3bit_color_2bit;
 
 		window_backbuffer_draw_internal_flag_x = true;//このラインでウインドウが描画されたフラグをたてる
@@ -5788,6 +5876,10 @@ private:
 				if ((read_RAM_8bit(0xFF41) & 0b00001000) != 0) {//Bit 3 - Mode 0 HBlank STAT Interrupt source
 					gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
 				}
+
+				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
+					execute_HBLANK_DMA();//HBLANK DMAをする
+				}
 			}
 			else if (current_STAT_mode == 1) {//1: VBlank
 				//LCD_STAT割り込み VBLANK
@@ -6013,46 +6105,6 @@ private:
 		pTexture->Release();
 	}
 
-#ifdef GBX_EMU_DEBUG
-	void _debug_draw_screen_256x256_backbuffer(MyDirectXSystem* myDirectXSystem, uint8_t buffer_type) {
-		LPDIRECT3DTEXTURE9 pTexture;
-		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(256, 256, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
-			return;
-		}
-		D3DLOCKED_RECT lockedRect;
-		pTexture->LockRect(0, &lockedRect, NULL, 0);
-		DWORD* pTextureBuffer = (DWORD*)lockedRect.pBits;
-
-		for (int y = 0; y < 256; y++) {
-			for (int x = 0; x < 256; x++) {
-				uint8_t color_no;
-				if (buffer_type == 0) {
-					color_no = _8bit_backbuffer_data_256x256__mtype0_dtype0[y * 256 + x];
-				}
-				else if (buffer_type == 1) {
-					color_no = _8bit_backbuffer_data_256x256__mtype0_dtype1[y * 256 + x];
-				}
-				else if (buffer_type == 2) {
-					color_no = _8bit_backbuffer_data_256x256__mtype1_dtype0[y * 256 + x];
-				}
-				else {
-					color_no = _8bit_backbuffer_data_256x256__mtype1_dtype1[y * 256 + x];
-				}
-				DWORD color = get_bg_window_palette(color_no);
-
-				pTextureBuffer[y * 256 + x] = color;
-			}
-		}
-
-		pTexture->UnlockRect(0);
-
-		MyDirectXDraw::draw_texture_base_leftup(myDirectXSystem, pTexture, (float)256, (float)256, 0, 0);
-
-		pTexture->Release();
-	}
-#endif
-
-
 	//====================================================================================
 
 	void draw_screen_bg__cgb(MyDirectXSystem* myDirectXSystem) {
@@ -6180,6 +6232,88 @@ private:
 
 	//===================================================================
 
+#ifdef GBX_EMU_DEBUG
+	void _debug_draw_screen_256x256_backbuffer(MyDirectXSystem* myDirectXSystem, uint8_t buffer_type) {
+		LPDIRECT3DTEXTURE9 pTexture;
+		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(256, 256, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
+			return;
+		}
+		D3DLOCKED_RECT lockedRect;
+		pTexture->LockRect(0, &lockedRect, NULL, 0);
+		DWORD* pTextureBuffer = (DWORD*)lockedRect.pBits;
+
+		for (int y = 0; y < 256; y++) {
+			for (int x = 0; x < 256; x++) {
+				uint8_t color_no;
+				if (buffer_type == 0) {
+					color_no = _8bit_backbuffer_data_256x256__mtype0_dtype0[y * 256 + x];
+				}
+				else if (buffer_type == 1) {
+					color_no = _8bit_backbuffer_data_256x256__mtype0_dtype1[y * 256 + x];
+				}
+				else if (buffer_type == 2) {
+					color_no = _8bit_backbuffer_data_256x256__mtype1_dtype0[y * 256 + x];
+				}
+				else {
+					color_no = _8bit_backbuffer_data_256x256__mtype1_dtype1[y * 256 + x];
+				}
+				DWORD color = get_bg_window_palette(color_no);
+
+				pTextureBuffer[y * 256 + x] = color;
+			}
+		}
+
+		pTexture->UnlockRect(0);
+
+		MyDirectXDraw::draw_texture_base_leftup(myDirectXSystem, pTexture, (float)256, (float)256, 0, 0);
+
+		pTexture->Release();
+	}
+
+	void _debug_draw_screen_256x256_backbuffer__cgb(MyDirectXSystem* myDirectXSystem, uint8_t buffer_type) {
+		LPDIRECT3DTEXTURE9 pTexture;
+		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(256, 256, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
+			return;
+		}
+		D3DLOCKED_RECT lockedRect;
+		pTexture->LockRect(0, &lockedRect, NULL, 0);
+		DWORD* pTextureBuffer = (DWORD*)lockedRect.pBits;
+
+		for (int y = 0; y < 256; y++) {
+			for (int x = 0; x < 256; x++) {
+				uint8_t pixel_priority_1bit_palette_3bit_color_2bit;
+				if (buffer_type == 0) {
+					pixel_priority_1bit_palette_3bit_color_2bit = _8bit_backbuffer_data_256x256__mtype0_dtype0[y * 256 + x];
+				}
+				else if (buffer_type == 1) {
+					pixel_priority_1bit_palette_3bit_color_2bit = _8bit_backbuffer_data_256x256__mtype0_dtype1[y * 256 + x];
+				}
+				else if (buffer_type == 2) {
+					pixel_priority_1bit_palette_3bit_color_2bit = _8bit_backbuffer_data_256x256__mtype1_dtype0[y * 256 + x];
+				}
+				else {
+					pixel_priority_1bit_palette_3bit_color_2bit = _8bit_backbuffer_data_256x256__mtype1_dtype1[y * 256 + x];
+				}
+				uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
+				uint8_t r_5bit = color_2byte & 0b11111;
+				uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+				uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+				DWORD color;
+				color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+
+				pTextureBuffer[y * 256 + x] = color;
+			}
+		}
+
+		pTexture->UnlockRect(0);
+
+		MyDirectXDraw::draw_texture_base_leftup(myDirectXSystem, pTexture, (float)256, (float)256, 0, 0);
+
+		pTexture->Release();
+	}
+#endif
+
 	//LCDオフのときの画面の描画
 	void draw_screen_LCD_off(MyDirectXSystem* myDirectXSystem) {
 		LPDIRECT3DTEXTURE9 pTexture;
@@ -6225,7 +6359,7 @@ private:
 
 				//M_debug_printf("[%d][%d] r = 0x%02x, g = 0x%02x, b = 0x%02x, COLOR = 0x%08x\n", j, i, r_5bit, g_5bit, b_5bit, color);
 
-				MyDirectXDraw::draw_box_leftup(myDirectXSystem, j * 20, i * 20, j * 20 + 20, i * 20 + 20, color);
+				MyDirectXDraw::draw_box_leftup(myDirectXSystem, j * 20, 300 + i * 20, j * 20 + 20, 300 + i * 20 + 20, color);
 			}
 		}
 
@@ -6242,7 +6376,7 @@ private:
 
 				//M_debug_printf("[%d][%d] r = 0x%02x, g = 0x%02x, b = 0x%02x, COLOR = 0x%08x\n", j, i, r_5bit, g_5bit, b_5bit, color);
 
-				MyDirectXDraw::draw_box_leftup(myDirectXSystem, 100 + j * 20, 10 + i * 20, 100 + j * 20 + 20, 10 + i * 20 + 20, color);
+				MyDirectXDraw::draw_box_leftup(myDirectXSystem, 100 + j * 20, 300 + 10 + i * 20, 100 + j * 20 + 20, 300 + 10 + i * 20 + 20, color);
 			}
 		}
 	}
@@ -6439,11 +6573,13 @@ public:
 			instruction_code = read_RAM_8bit(gbx_register.PC);
 
 			//=========================================================
-			
-			//M_debug_printf("=========================================================\n");
-			//M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
-			//	gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
-			
+
+			//if (booting_flag == false) {
+			//	M_debug_printf("=========================================================\n");
+			//	M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+			//		gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
+			//}
+
 			//=========================================================
 
 			gbx_register.PC++;
@@ -6536,12 +6672,19 @@ public:
 		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 2);
 		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 3);
 
+		//_debug_draw_screen_256x256_backbuffer__cgb(myDirectXSystem, 0);
+		//_debug_draw_screen_256x256_backbuffer__cgb(myDirectXSystem, 1);
+		//_debug_draw_screen_256x256_backbuffer__cgb(myDirectXSystem, 2);
+		//_debug_draw_screen_256x256_backbuffer__cgb(myDirectXSystem, 3);
+
 		//__debug_draw_all_palette__cgb(myDirectXSystem);
 #endif
 
 		//M_debug_printf("End 1 frame...\n");
 		
-		//system("pause");
+		//if (booting_flag == false) {
+		//	system("pause");
+		//}
 
 	}
 };
