@@ -1,2 +1,2 @@
-著作権の関係上実行可能ファイルは256バイトのbootromのバイナリファイルをどこかしらで手に入れて  
-"bootrom/bootrom_256byte.bin" に入れて自分でビルドしてください  
+著作権の関係上実行可能ファイルはゲームボーイとゲームボーイカラーのbootromのバイナリファイルをどこかしらで手に入れてそれぞれbootrom_256byte.binとbootrom_cgb.bin にリネーム後
+"bootrom/bootrom_256byte.bin" "bootrom/bootrom_cgb.bin" となるように配置してから自分でビルドしてください
