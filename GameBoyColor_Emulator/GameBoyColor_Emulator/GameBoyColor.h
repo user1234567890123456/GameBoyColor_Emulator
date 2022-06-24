@@ -40,6 +40,11 @@ private:
 
 
 
+	bool SET_CPU_Clock_2x_Flag__CGB = false;//CPUのSTOP命令でセットするモード
+	bool CURRENT_CPU_Clock_2x_Flag__CGB = false;//CPUが倍速モードか
+
+
+
 #define SAVEDATA_FILE_EXT_NAME ".savdat"
 	FILE* savedata_fp;
 
@@ -1004,7 +1009,7 @@ private:
 	uint16_t HDMA_dst_addr = 0;
 
 	bool HBlank_DMA_Flag = false;//HBLANKDMAをしているか
-	uint16_t HBlank_DMA_Remain_Size = 0x0000;//HBLANKDMAの残りのサイズ
+	uint16_t HBlank_DMA_Remain_Size = 0x0000;//HBLANK_DMAの残りのサイズ
 	void execute_HBLANK_DMA() {
 		if (HBlank_DMA_Flag == false) {//HBLANKDMAをしていないとき
 			return;
@@ -1110,6 +1115,17 @@ private:
 				else {//アクティブなとき
 					read_value = (((HBlank_DMA_Remain_Size / 0x10) - 1) & 0b01111111);
 				}
+
+				return read_value;
+			}
+			else if (read_address == 0xFF4D) {//速度切り替えレジスタ
+				read_value = 0;
+
+				if (CURRENT_CPU_Clock_2x_Flag__CGB == true) {
+					read_value |= 0b10000000;
+				}
+
+				read_value != 0b00000001;//常に速度切り替えの準備ができていることにする
 
 				return read_value;
 			}
@@ -1333,6 +1349,18 @@ private:
 
 				return;
 			}
+			else if (write_address == 0xFF4D) {//速度切り替えレジスタ
+				//STOP命令で変更するCPUのモードをセットする
+				if ((value & 0b00000001) != 0) {
+					SET_CPU_Clock_2x_Flag__CGB = true;
+				}
+				else {
+					SET_CPU_Clock_2x_Flag__CGB = false;
+				}
+
+				return;
+			}
+
 		}
 
 		if (write_address <= 0x1FFF) {//RAMの有効化
@@ -4448,12 +4476,10 @@ private:
 
 	//0x10
 	void cpu_fnc__STOP() {
-		/*
-		TODO
-		詳細な実装をあとでする
-		*/
-
 		//M_debug_printf("STOP...\n");
+
+		//CPUの動作モードを変更する
+		CURRENT_CPU_Clock_2x_Flag__CGB = SET_CPU_Clock_2x_Flag__CGB;
 
 		gbx_register.PC++;//stop命令は1バイトとばす
 
@@ -6574,10 +6600,18 @@ public:
 
 			//=========================================================
 
-			//if (booting_flag == false) {
-			//	M_debug_printf("=========================================================\n");
-			//	M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
-			//		gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
+			//if (key->get_input_state__normal__(INPUT_MY_ID_UP) != 0) {
+			//	if (booting_flag == false) {
+			//		M_debug_printf("=========================================================\n");
+			//		M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
+			//	}
+			// 
+			// if (booting_flag == false) {
+			//		M_debug_printf("=========================================================\n");
+			//		M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
+			//	}
 			//}
 
 			//=========================================================
