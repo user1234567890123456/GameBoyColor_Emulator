@@ -10,3 +10,6 @@
 ビルドしてできた実行可能ファイルをExecutableディレクトリに入れると実行できます  
 <br>
 # スクリーンショット
+![zel1](https://user-images.githubusercontent.com/81889210/175523201-933f284a-2f1a-48de-893f-22a130218dbc.png)
+![zel2](https://user-images.githubusercontent.com/81889210/175523217-a6510570-8686-4714-8ec7-dc521e7af940.png)
+![zel3](https://user-images.githubusercontent.com/81889210/175523219-388bb49b-e198-46f3-bfff-1d217d6ad766.png)
