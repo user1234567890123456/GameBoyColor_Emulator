@@ -74,7 +74,7 @@ int _stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 	CRC::Init();
 
 
-#ifdef GBX_EMU_DEBUG
+#ifdef GAMEBOYCOLOR_EMULATOR_DEBUG
 	//if (full_result == IDNO) {//NO
 //	if (fullscreen_result == false) {//NO
 		AllocConsole();
@@ -84,7 +84,7 @@ int _stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
 		M_debug_printf("\n");
 		M_debug_printf("=======================================\n");
-		M_debug_printf("GBX_Emu Debug Console\n");
+		M_debug_printf("GameBoyColor_Emulator Debug Console\n");
 		M_debug_printf("=======================================\n");
 		M_debug_printf("\n");
 //	}
@@ -403,7 +403,7 @@ int _stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
 	MaterialArchiveFile::End();
 
-#ifdef GBX_EMU_DEBUG
+#ifdef GAMEBOYCOLOR_EMULATOR_DEBUG
 	//if (full_result == IDNO) {
 //	if (fullscreen_result == false) {
 		FreeConsole();

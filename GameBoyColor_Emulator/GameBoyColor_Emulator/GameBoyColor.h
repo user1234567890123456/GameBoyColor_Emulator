@@ -3,6 +3,7 @@
 using namespace std;
 
 #include <vector>
+#include <algorithm>
 
 #include <io.h>
 #pragma comment(lib, "shlwapi.lib")
@@ -5738,6 +5739,8 @@ private:
 	}
 
 	struct Sprite_Info {
+		uint16_t address_index = 0x0000;
+
 		uint32_t x = 0;
 		uint32_t y = 0;
 		uint8_t tile_no = 0;
@@ -5746,6 +5749,11 @@ private:
 		bool sprite_reverse_x_flag = false;
 		bool palette_OBP1_flag = false;
 		bool size_8x16_flag = false;
+
+		//アドレスが大きい順に並べ替えるために使う比較関数
+		bool operator<(const Sprite_Info& right) const {
+			return (address_index < right.address_index) ? false : true;
+		}
 	};
 	vector<Sprite_Info> sprite_info_list;
 	void init_sprite_info_list() {
@@ -5771,16 +5779,18 @@ private:
 		for (int i = 0; i < 40; i++) {
 			Sprite_Info s_info;
 
+			s_info.address_index = (4 * i);//スプライト間の描画優先順位決定のためにアドレスのインデックスを保存しておく
+
 			/*
 			s_info.x, s_info.x はスクリーンの座標
 			*/
-			s_info.y = (gbx_ram.RAM[0xFE00 + (4 * (39 - i))] - 16);
-			s_info.x = (gbx_ram.RAM[0xFE00 + (4 * (39 - i)) + 1] - 8);
+			s_info.y = (gbx_ram.RAM[0xFE00 + (4 * i)] - 16);
+			s_info.x = (gbx_ram.RAM[0xFE00 + (4 * i) + 1] - 8);
 			if (!(pixel_x == s_info.x && pixel_y == s_info.y)) {
 				continue;
 			}
-			s_info.tile_no = gbx_ram.RAM[0xFE00 + (4 * (39 - i)) + 2];
-			uint8_t attribute = gbx_ram.RAM[0xFE00 + (4 * (39 - i)) + 3];
+			s_info.tile_no = gbx_ram.RAM[0xFE00 + (4 * i) + 2];
+			uint8_t attribute = gbx_ram.RAM[0xFE00 + (4 * i) + 3];
 
 			s_info.sprite_max_priority_flag = ((attribute & 0b10000000) != 0) ? false : true;
 			s_info.sprite_reverse_y_flag = ((attribute & 0b01000000) != 0) ? true : false;
@@ -5800,6 +5810,15 @@ private:
 	}
 
 	void draw_screenbuffer_sprite_data() {
+		//M_debug_printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+		//for (int k = 0; k < sprite_info_list.size(); k++) {
+		//	M_debug_printf("BEF sprite_info_list[%d].address_index = 0x%04x\n", k, sprite_info_list[k].address_index);
+		//}
+		sort(sprite_info_list.begin(), sprite_info_list.end());
+		//for (int k = 0; k < sprite_info_list.size(); k++) {
+		//	M_debug_printf("AFT sprite_info_list[%d].address_index = 0x%04x\n", k, sprite_info_list[k].address_index);
+		//}
+
 		for (int i = 0; i < sprite_info_list.size(); i++) {
 			Sprite_Info s_info = sprite_info_list[i];
 
@@ -5887,6 +5906,8 @@ private:
 
 
 	struct Sprite_Info_CGB {
+		uint16_t address_index = 0x0000;
+
 		uint32_t x = 0;
 		uint32_t y = 0;
 		uint8_t tile_no = 0;
@@ -5896,6 +5917,11 @@ private:
 		bool tile_data_bank1_flag = false;
 		uint8_t sprite_palette_no_3bit = 0;
 		bool size_8x16_flag = false;
+
+		//アドレスが大きい順に並べ替えるために使う比較関数
+		bool operator<(const Sprite_Info_CGB& right) const {
+			return (address_index < right.address_index) ? false : true;
+		}
 	};
 	vector<Sprite_Info_CGB> sprite_info_list__cgb;
 	void init_sprite_info_list__cgb() {
@@ -5921,16 +5947,18 @@ private:
 		for (int i = 0; i < 40; i++) {
 			Sprite_Info_CGB s_info;
 
+			s_info.address_index = (4 * i);//スプライト間の描画優先順位決定のためにアドレスのインデックスを保存しておく
+
 			/*
 			s_info.x, s_info.x はスクリーンの座標
 			*/
-			s_info.y = (gbx_ram.RAM[0xFE00 + (4 * (39 - i))] - 16);
-			s_info.x = (gbx_ram.RAM[0xFE00 + (4 * (39 - i)) + 1] - 8);
+			s_info.y = (gbx_ram.RAM[0xFE00 + (4 * i)] - 16);
+			s_info.x = (gbx_ram.RAM[0xFE00 + (4 * i) + 1] - 8);
 			if (!(pixel_x == s_info.x && pixel_y == s_info.y)) {
 				continue;
 			}
-			s_info.tile_no = gbx_ram.RAM[0xFE00 + (4 * (39 - i)) + 2];
-			uint8_t attribute = gbx_ram.RAM[0xFE00 + (4 * (39 - i)) + 3];
+			s_info.tile_no = gbx_ram.RAM[0xFE00 + (4 * i) + 2];
+			uint8_t attribute = gbx_ram.RAM[0xFE00 + (4 * i) + 3];
 
 			s_info.sprite_max_priority_flag = ((attribute & 0b10000000) != 0) ? false : true;
 			s_info.sprite_reverse_y_flag = ((attribute & 0b01000000) != 0) ? true : false;
@@ -5951,6 +5979,15 @@ private:
 	}
 
 	void draw_screenbuffer_sprite_data__cgb() {
+		//M_debug_printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+		//for (int k = 0; k < sprite_info_list__cgb.size(); k++) {
+		//	M_debug_printf("BEF sprite_info_list__cgb[%d].address_index = 0x%04x\n", k, sprite_info_list__cgb[k].address_index);
+		//}
+		sort(sprite_info_list__cgb.begin(), sprite_info_list__cgb.end());
+		//for (int k = 0; k < sprite_info_list__cgb.size(); k++) {
+		//	M_debug_printf("AFT sprite_info_list__cgb[%d].address_index = 0x%04x\n", k, sprite_info_list__cgb[k].address_index);
+		//}
+
 		for (int i = 0; i < sprite_info_list__cgb.size(); i++) {
 			Sprite_Info_CGB s_info = sprite_info_list__cgb[i];
 
@@ -6394,7 +6431,7 @@ private:
 
 	//===================================================================
 
-#ifdef GBX_EMU_DEBUG
+#ifdef GAMEBOYCOLOR_EMULATOR_DEBUG
 	void _debug_draw_screen_256x256_backbuffer(MyDirectXSystem* myDirectXSystem, uint8_t buffer_type) {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(256, 256, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
@@ -6506,7 +6543,7 @@ private:
 		pTexture->Release();
 	}
 
-#ifdef GBX_EMU_DEBUG
+#ifdef GAMEBOYCOLOR_EMULATOR_DEBUG
 	void __debug_draw_all_palette__cgb(MyDirectXSystem* myDirectXSystem) {
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 4; j++) {
@@ -6669,14 +6706,14 @@ public:
 
 
 		M_debug_printf("################################\n");
-		M_debug_printf("GBX::GBX() Succeed!\n");
+		M_debug_printf("GameBoyColor::GameBoyColor() Succeed!\n");
 		M_debug_printf("################################\n");
 
 		return;
 
 	gbx_init_error:
 		M_debug_printf("################################\n");
-		M_debug_printf("GBX::GBX() Failed......\n");
+		M_debug_printf("GameBoyColor::GameBoyColor() Failed......\n");
 		M_debug_printf("################################\n");
 
 		MessageBox(NULL, _T("ROMの初期化の際にエラーが発生しました"), _T("ERROR"), MB_OK | MB_ICONERROR);
@@ -6739,15 +6776,7 @@ public:
 			instruction_code = read_RAM_8bit(gbx_register.PC);
 
 			//=========================================================
-
-			//if (key->get_input_state__normal__(INPUT_MY_ID_SELECT) != 0) {
-			//	if (booting_flag == false) {
-			//		M_debug_printf("=========================================================\n");
-			//		M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
-			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
-			//	}
-			//}
-			//
+			
 			// if (booting_flag == false) {
 			//		M_debug_printf("=========================================================\n");
 			//		M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
@@ -6851,7 +6880,7 @@ public:
 			draw_screen_LCD_off(myDirectXSystem);
 		}
 
-#ifdef GBX_EMU_DEBUG
+#ifdef GAMEBOYCOLOR_EMULATOR_DEBUG
 		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 0);
 		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 1);
 		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 2);
