@@ -1225,6 +1225,12 @@ private:
 		else if (read_address == 0xFF26) {//ƒTƒEƒ“ƒh(–¢ŽÀ‘•)
 			read_value = 0x00;
 		}
+		else if (read_address == 0xFF01) {//’ÊMƒf[ƒ^ƒŒƒWƒXƒ^ (R/W)
+			read_value = 0x00;
+		}
+		else if (read_address == 0xFF02) {//’ÊM§ŒäƒŒƒWƒXƒ^ (R/W)
+			read_value = 0x00;
+		}
 		else {//’Êí“Ç‚ÝŽæ‚è
 			read_value = gbx_ram.RAM[read_address];
 		}
@@ -1648,6 +1654,12 @@ private:
 			gbx_ram.RAM[write_address] = 0x00;
 		}
 		else if (write_address == 0xFF26) {//ƒTƒEƒ“ƒh(–¢ŽÀ‘•)
+			gbx_ram.RAM[write_address] = 0x00;
+		}
+		else if (write_address == 0xFF01) {//’ÊMƒf[ƒ^ƒŒƒWƒXƒ^ (R/W)
+			gbx_ram.RAM[write_address] = 0x00;
+		}
+		else if (write_address == 0xFF02) {//’ÊM§ŒäƒŒƒWƒXƒ^ (R/W)
 			gbx_ram.RAM[write_address] = 0x00;
 		}
 		else {//’Êí‘‚«ž‚Ý
@@ -5324,7 +5336,7 @@ private:
 
 		uint8_t color_2bit = _8bit_bg_backbuffer_data_256x256__ptr[(256 * (uint8_t)(scroll_y + screen_y)) + (uint8_t)(scroll_x + screen_x)];
 		if ((color_2bit & 0b00000011) != 0) {//”wŒiF‚Å‚È‚¢‚Æ‚«
-			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = true;
+			backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = true;
 		}
 		//else {
 		//	backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;
@@ -5359,13 +5371,17 @@ private:
 
 		uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_bg_backbuffer_data_256x256__ptr[(256 * (uint8_t)(scroll_y + screen_y)) + (uint8_t)(scroll_x + screen_x)];
 		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) != 0) {//”wŒiF‚Å‚È‚¢‚Æ‚«
-			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = true;
+			backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = true;
 		}
 		//else {
 		//	backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;
 		//}
-		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//”wŒi/ƒEƒBƒ“ƒhƒE‚Ìƒ}ƒXƒ^[—Dæ“x‚Ìƒrƒbƒg‚ª0‚Ì‚Æ‚«
-			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;//—Dæ‡ˆÊ‚ð‹­§“I‚É‰º‚°‚é
+		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00100000) != 0) {
+			BG_0bit_attribute_flag__cgb[screen_x + screen_y * GBX_WIDTH] = true;
+		}
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) != 0) {//”wŒi/ƒEƒBƒ“ƒhƒE‚Ìƒ}ƒXƒ^[—Dæ“x‚Ìƒrƒbƒg‚ª0‚Ì‚Æ‚«
+			LCDC_0bit_master_flag__cgb[screen_x + screen_y * GBX_WIDTH] = true;
+			//backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = false;//—Dæ‡ˆÊ‚ð‹­§“I‚É‰º‚°‚é
 		}
 		_8bit_bg_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = pixel_priority_1bit_palette_3bit_color_2bit;
 	}
@@ -5426,7 +5442,7 @@ private:
 
 		uint8_t color_2bit = _8bit_window_backbuffer_data_256x256__ptr[(uint8_t)(screen_x - window_x) + ((uint8_t)window_backbuffer_draw_internal_counter_y/*(screen_y - window_y)*/ * 256)];
 		if ((color_2bit & 0b00000011) != 0) {//”wŒiF‚Å‚È‚¢‚Æ‚«
-			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = true;
+			backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = true;
 		}
 		//else {
 		//	backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;
@@ -5475,13 +5491,17 @@ private:
 
 		uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_window_backbuffer_data_256x256__ptr[(uint8_t)(screen_x - window_x) + ((uint8_t)window_backbuffer_draw_internal_counter_y/*(screen_y - window_y)*/ * 256)];
 		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) != 0) {//”wŒiF‚Å‚È‚¢‚Æ‚«
-			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = true;
+			backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = true;
 		}
 		//else {
 		//	backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;
 		//}
-		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//”wŒi/ƒEƒBƒ“ƒhƒE‚Ìƒ}ƒXƒ^[—Dæ“x‚Ìƒrƒbƒg‚ª0‚Ì‚Æ‚«
-			backbuffer_sprite_mask[screen_x + screen_y * GBX_WIDTH] = false;//—Dæ‡ˆÊ‚ð‹­§“I‚É‰º‚°‚é
+		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00100000) != 0) {
+			BG_0bit_attribute_flag__cgb[screen_x + screen_y * GBX_WIDTH] = true;
+		}
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) != 0) {//”wŒi/ƒEƒBƒ“ƒhƒE‚Ìƒ}ƒXƒ^[—Dæ“x‚Ìƒrƒbƒg‚ª0‚Ì‚Æ‚«
+			LCDC_0bit_master_flag__cgb[screen_x + screen_y * GBX_WIDTH] = true;
+			//backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = false;//—Dæ‡ˆÊ‚ð‹­§“I‚É‰º‚°‚é
 		}
 		_8bit_window_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = pixel_priority_1bit_palette_3bit_color_2bit;
 
@@ -6108,7 +6128,7 @@ private:
 		c_cycle_mod = 0;//•’i‚Í—]‚è0
 	}
 
-	bool backbuffer_sprite_mask[GBX_WIDTH * GBX_HEIGHT] = { false };//”wŒiF‚Å‚È‚¢ê‡true
+	bool backbuffer_isnobackgroundcolor_mask[GBX_WIDTH * GBX_HEIGHT] = { false };//”wŒiF‚Å‚È‚¢ê‡true
 
 	void draw_screen_bg(MyDirectXSystem* myDirectXSystem) {
 		LPDIRECT3DTEXTURE9 pTexture;
@@ -6183,7 +6203,7 @@ private:
 				DWORD color;
 
 				if ((color_no & 0b01000000) != 0) {//—Dæ‡ˆÊ‚ª’á‚¢‚Æ‚«
-					if (backbuffer_sprite_mask[y * GBX_WIDTH + x] == true || color_no == 0xFF) {//”wŒiF‚Å‚È‚¢ê‡
+					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == true || color_no == 0xFF) {//”wŒiF‚Å‚È‚¢ê‡
 						color = 0x00000000;
 					}
 					else {
@@ -6212,6 +6232,9 @@ private:
 	}
 
 	//====================================================================================
+
+	bool LCDC_0bit_master_flag__cgb[GBX_WIDTH * GBX_HEIGHT] = { false };
+	bool BG_0bit_attribute_flag__cgb[GBX_WIDTH * GBX_HEIGHT] = { false };
 
 	void draw_screen_bg__cgb(MyDirectXSystem* myDirectXSystem) {
 		LPDIRECT3DTEXTURE9 pTexture;
@@ -6295,8 +6318,36 @@ private:
 				uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_sprite_screen_data_160x144[y * GBX_WIDTH + x];
 				DWORD color;
 
-				if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00100000) == 0) {//—Dæ‡ˆÊ‚ª’á‚¢‚Æ‚«
-					if (backbuffer_sprite_mask[y * GBX_WIDTH + x] == true || pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//”wŒiF‚Å‚È‚¢ê‡
+				if (LCDC_0bit_master_flag__cgb[y * GBX_WIDTH + x] == false) {
+					if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//“§–¾•”•ª‚ÌŽž
+						color = 0x00000000;
+					}
+					else {
+						//color = get_sprite_palette(color_no & 0b00111111, ((color_no & 0b10000000) != 0) ? true : false);
+						uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
+						uint8_t r_5bit = color_2byte & 0b11111;
+						uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+						uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+						color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+					}
+				}
+				else if (BG_0bit_attribute_flag__cgb[y * GBX_WIDTH + x] == true) {
+					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == false) {//”wŒiF‚Ì‚Æ‚«
+						//color = get_sprite_palette(color_no & 0b00111111, ((color_no & 0b10000000) != 0) ? true : false);
+						uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
+						uint8_t r_5bit = color_2byte & 0b11111;
+						uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+						uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+						color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+					}
+					else {//”wŒiF‚Å‚È‚¢‚Æ‚«
+						color = 0x00000000;
+					}
+				}
+				else if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00100000) == 0) {//—Dæ‡ˆÊ‚ª’á‚¢‚Æ‚«
+					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == true || pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//”wŒiF‚Å‚È‚¢ê‡
 						color = 0x00000000;
 					}
 					else {
@@ -6641,7 +6692,11 @@ public:
 	}
 
 	void execute_all(MyDirectXSystem* myDirectXSystem) {
-		memset(backbuffer_sprite_mask, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
+		memset(backbuffer_isnobackgroundcolor_mask, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
+		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
+			memset(LCDC_0bit_master_flag__cgb, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
+			memset(BG_0bit_attribute_flag__cgb, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
+		}
 
 		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
 			init_sprite_info_list();
@@ -6680,7 +6735,7 @@ public:
 
 			//=========================================================
 
-			//if (key->get_input_state__normal__(INPUT_MY_ID_UP) != 0) {
+			//if (key->get_input_state__normal__(INPUT_MY_ID_SELECT) != 0) {
 			//	if (booting_flag == false) {
 			//		M_debug_printf("=========================================================\n");
 			//		M_debug_printf("PC:0x%04x [–½—ß:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
@@ -6806,7 +6861,7 @@ public:
 #endif
 
 		//M_debug_printf("End 1 frame...\n");
-		
+
 		//if (booting_flag == false) {
 		//	system("pause");
 		//}
