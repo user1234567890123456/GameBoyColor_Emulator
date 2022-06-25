@@ -50,7 +50,6 @@ private:
 
 
 #define BOOT_ROM_SIZE 0x100
-#define BOOT_ROM_SIZE_CGB 0x900
 	bool booting_flag = true;//ブートロムを実行中ならtrue
 	//ブートロムのコード
 	//const uint8_t READ_ONLY_BOOTROM_CODE_256byte[BOOT_ROM_SIZE] = {
@@ -83,6 +82,7 @@ private:
 		memcpy(bootrom_256byte, READ_ONLY_BOOTROM_CODE_256byte, BOOT_ROM_SIZE);
 	}
 
+#define BOOT_ROM_SIZE_CGB 0x900
 	uint8_t bootrom_2048byte__cgb[BOOT_ROM_SIZE_CGB];
 	void init_bootrom__cgb() {//ブートロムの初期化をする(ゲームボーイカラー)
 		static uint8_t* READ_ONLY_BOOTROM_CODE_2048byte__cgb;
@@ -1190,6 +1190,41 @@ private:
 				read_value |= 0b00001111;
 			}
 		}
+		else if (//サウンド(未実装)
+			read_address == 0xFF10 ||
+			read_address == 0xFF11 ||
+			read_address == 0xFF12 ||
+			read_address == 0xFF13 ||
+			read_address == 0xFF14 ||
+
+			read_address == 0xFF16 ||
+			read_address == 0xFF17 ||
+			read_address == 0xFF18 ||
+			read_address == 0xFF19 ||
+
+			read_address == 0xFF1A ||
+			read_address == 0xFF1B ||
+			read_address == 0xFF1C ||
+			read_address == 0xFF1D ||
+			read_address == 0xFF1E ||
+			(0xFF30 <= read_address && read_address <= 0xFF3F) ||
+			
+			read_address == 0xFF20 ||
+			read_address == 0xFF21 ||
+			read_address == 0xFF22 ||
+			read_address == 0xFF23)
+		{
+			read_value = gbx_ram.RAM[read_address];
+		}
+		else if (read_address == 0xFF24) {//サウンド(未実装)
+			read_value = 0x00;
+		}
+		else if (read_address == 0xFF25) {//サウンド(未実装)
+			read_value = 0x00;
+		}
+		else if (read_address == 0xFF26) {//サウンド(未実装)
+			read_value = 0x00;
+		}
 		else {//通常読み取り
 			read_value = gbx_ram.RAM[read_address];
 		}
@@ -1579,6 +1614,41 @@ private:
 			memcpy((void*)(&(gbx_ram.RAM[0xFE00])), (void*)(&(gbx_ram.RAM[src_address])), 40 * 4);
 	
 			//サイクル数はすすめない //cpu_machine_cycle += 160;//160 M-cycle かかる
+		}
+		else if (//サウンド(未実装)
+			write_address == 0xFF10 ||
+			write_address == 0xFF11 ||
+			write_address == 0xFF12 ||
+			write_address == 0xFF13 ||
+			write_address == 0xFF14 ||
+
+			write_address == 0xFF16 ||
+			write_address == 0xFF17 ||
+			write_address == 0xFF18 ||
+			write_address == 0xFF19 ||
+
+			write_address == 0xFF1A ||
+			write_address == 0xFF1B ||
+			write_address == 0xFF1C ||
+			write_address == 0xFF1D ||
+			write_address == 0xFF1E ||
+			(0xFF30 <= write_address && write_address <= 0xFF3F) ||
+
+			write_address == 0xFF20 ||
+			write_address == 0xFF21 ||
+			write_address == 0xFF22 ||
+			write_address == 0xFF23)
+		{
+			gbx_ram.RAM[write_address] = value;
+		}
+		else if (write_address == 0xFF24) {//サウンド(未実装)
+			gbx_ram.RAM[write_address] = 0x00;
+		}
+		else if (write_address == 0xFF25) {//サウンド(未実装)
+			gbx_ram.RAM[write_address] = 0x00;
+		}
+		else if (write_address == 0xFF26) {//サウンド(未実装)
+			gbx_ram.RAM[write_address] = 0x00;
 		}
 		else {//通常書き込み
 			gbx_ram.RAM[write_address] = value;
@@ -2291,6 +2361,8 @@ private:
 		gbx_register.F_C = 0;
 
 		gbx_register.PC++;
+
+		//M_debug_printf("AND A, 0x%02x\n", value_8bit);
 	}
 
 	//void cpu_fnc__CP_A_r8() {
@@ -3575,6 +3647,8 @@ private:
 		gbx_register.A = read_RAM_8bit(gbx_register.PC);
 
 		gbx_register.PC++;
+
+		//M_debug_printf("LD A, 0x%02x\n", gbx_register.A);
 	}
 
 	//0x06
@@ -3780,6 +3854,8 @@ private:
 		write_RAM_8bit(0xFF00 + relative_addr, gbx_register.A);
 
 		gbx_register.PC++;
+
+		//M_debug_printf("LD (0x%04x), A\n", 0xFF00 + relative_addr);
 	}
 
 	//0xE2
@@ -3826,6 +3902,8 @@ private:
 		gbx_register.A = read_RAM_8bit(0xFF00 + relative_addr);
 
 		gbx_register.PC++;
+
+		//M_debug_printf("LD A, (0x%04x)\n", 0xFF00 + relative_addr);
 	}
 
 	//0xF2
@@ -3969,6 +4047,8 @@ private:
 		}
 
 		gbx_register.PC++;
+
+		//M_debug_printf("JR NZ, 0x%x\n", relative_addr);
 	}
 	//0x38
 	void cpu_fnc__JR_FC_e8() {//C
@@ -6606,13 +6686,13 @@ public:
 			//		M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
 			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
 			//	}
-			// 
+			//}
+			//
 			// if (booting_flag == false) {
 			//		M_debug_printf("=========================================================\n");
 			//		M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
 			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
 			//	}
-			//}
 
 			//=========================================================
 
@@ -6660,7 +6740,18 @@ public:
 				}
 			}
 
-			execute_ppu_process(cpu_machine_cycle * 4 + c_cycle_mod);
+			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+				execute_ppu_process(cpu_machine_cycle * 4 + c_cycle_mod);
+			}
+			else {
+				if (CURRENT_CPU_Clock_2x_Flag__CGB == true) {
+					execute_ppu_process(((cpu_machine_cycle * 4) / 2) + c_cycle_mod);//倍速モードのとき
+				}
+				else {
+					execute_ppu_process(cpu_machine_cycle * 4 + c_cycle_mod);
+				}
+			}
+
 			update_LCD_STAT();
 
 			cpu_machine_cycle = 0;
