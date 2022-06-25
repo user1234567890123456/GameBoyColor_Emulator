@@ -6319,10 +6319,10 @@ private:
 				DWORD color;
 
 				if (LCDC_0bit_master_flag__cgb[y * GBX_WIDTH + x] == false) {
-					if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//ìßñæïîï™ÇÃéû
+					if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//ìßñæïîï™ÇÃÇ∆Ç´
 						color = 0x00000000;
 					}
-					else {
+					else {//ìßñæïîï™Ç≈Ç»Ç¢Ç∆Ç´
 						//color = get_sprite_palette(color_no & 0b00111111, ((color_no & 0b10000000) != 0) ? true : false);
 						uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
 						uint8_t r_5bit = color_2byte & 0b11111;
@@ -6334,13 +6334,18 @@ private:
 				}
 				else if (BG_0bit_attribute_flag__cgb[y * GBX_WIDTH + x] == true) {
 					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == false) {//îwåiêFÇÃÇ∆Ç´
-						//color = get_sprite_palette(color_no & 0b00111111, ((color_no & 0b10000000) != 0) ? true : false);
-						uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
-						uint8_t r_5bit = color_2byte & 0b11111;
-						uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
-						uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+						if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//ìßñæïîï™ÇÃÇ∆Ç´
+							color = 0x00000000;
+						}
+						else {//ìßñæïîï™Ç≈Ç»Ç¢Ç∆Ç´
+							//color = get_sprite_palette(color_no & 0b00111111, ((color_no & 0b10000000) != 0) ? true : false);
+							uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
+							uint8_t r_5bit = color_2byte & 0b11111;
+							uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+							uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
 
-						color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+							color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+						}
 					}
 					else {//îwåiêFÇ≈Ç»Ç¢Ç∆Ç´
 						color = 0x00000000;
