@@ -1379,7 +1379,7 @@ private:
 					//memcpy(&(gbx_ram.RAM[HDMA_dst_addr]), &(gbx_ram.RAM[HDMA_src_addr]), transfer_size);
 					My_Emulator_RAM_memcpy(HDMA_dst_addr, HDMA_src_addr, transfer_size);
 
-					//M_debug_printf("GDMA!!! dst = 0x%04x, src = 0x%04x, size = 0x%x\n", HDMA_dst_addr, HDMA_src_addr, transfer_size);
+					//M_debug_printf("GDMA dst = 0x%04x, src = 0x%04x, size = 0x%x\n", HDMA_dst_addr, HDMA_src_addr, transfer_size);
 				}
 				else {//(HBlank DMA)
 					HBlank_DMA_Flag = true;
@@ -1423,9 +1423,13 @@ private:
 				if ((write_address & 0b0000000100000000) == 0) {//上位アドレスバイトの最下位ビットが0のとき
 					if (value == 0x0A) {
 						SRAM_Enable_Flag = true;
+
+						//M_debug_printf("Enable SRAM\n");
 					}
 					else {
 						SRAM_Enable_Flag = false;
+
+						//M_debug_printf("Disable SRAM\n");
 					}
 				}
 				else {//それ以外のとき
@@ -1471,9 +1475,13 @@ private:
 				if ((write_address & 0b0000000100000000) == 0) {//上位アドレスバイトの最下位ビットが0のとき
 					if (value == 0x0A) {
 						SRAM_Enable_Flag = true;
+
+						//M_debug_printf("Enable SRAM\n");
 					}
 					else {
 						SRAM_Enable_Flag = false;
+
+						//M_debug_printf("Disable SRAM\n");
 					}
 				}
 				else {//それ以外のとき
@@ -2500,6 +2508,7 @@ private:
 		gbx_register.F_N = 1;
 
 		gbx_register.PC++;
+
 	}
 
 	//void cpu_fnc__DEC_r8() {
@@ -3916,7 +3925,6 @@ private:
 
 		gbx_register.PC++;
 
-		//M_debug_printf("LD A, (0x%04x)\n", 0xFF00 + relative_addr);
 	}
 
 	//0xF2
@@ -4061,7 +4069,6 @@ private:
 
 		gbx_register.PC++;
 
-		//M_debug_printf("JR NZ, 0x%x\n", relative_addr);
 	}
 	//0x38
 	void cpu_fnc__JR_FC_e8() {//C
@@ -4640,6 +4647,7 @@ private:
 	}
 
 	void PREFIX_process(uint8_t instruction_code) {
+		//target_op_ptrがnullptrなら(HL)
 		uint8_t* target_op_ptr = get_target_op_ptr(instruction_code); //操作する"レジスタかメモリ"のポインタ
 
 		if (0x07 >= instruction_code) {//RLC
@@ -4776,7 +4784,8 @@ private:
 		}
 		else if (op_index == 6) {
 			//return &(gbx_ram.RAM[gbx_register.HL]);
-			return get_read_RAM_address___(gbx_register.HL);
+			//return get_read_RAM_address___(gbx_register.HL);
+			return nullptr;
 		}
 		//else if (op_index == 7) {
 		else {
@@ -4786,146 +4795,313 @@ private:
 
 
 	void PREFIX_process__RLC(uint8_t* target_op_ptr) {
-		if (((*target_op_ptr) & 0b10000000) != 0) {
-			gbx_register.F_C = 1;
+		if (target_op_ptr != nullptr) {
+			if (((*target_op_ptr) & 0b10000000) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			(*target_op_ptr) <<= 1;
+			(*target_op_ptr) |= gbx_register.F_C;
+
+			calc_Z_Flag__8bit(*target_op_ptr);
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
 		else {
-			gbx_register.F_C = 0;
+			if ((read_RAM_8bit(gbx_register.HL) & 0b10000000) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			//(*target_op_ptr) <<= 1;
+			//(*target_op_ptr) |= gbx_register.F_C;
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) << 1);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) | gbx_register.F_C);
+
+			calc_Z_Flag__8bit(read_RAM_8bit(gbx_register.HL));
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
-
-		(*target_op_ptr) <<= 1;
-		(*target_op_ptr) |= gbx_register.F_C;
-
-		calc_Z_Flag__8bit(*target_op_ptr);
-		gbx_register.F_N = 0;
-		gbx_register.F_H = 0;
 	}
 
 	void PREFIX_process__RRC(uint8_t* target_op_ptr) {
-		if (((*target_op_ptr) & 0b00000001) != 0) {
-			gbx_register.F_C = 1;
+		if (target_op_ptr != nullptr) {
+			if (((*target_op_ptr) & 0b00000001) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			(*target_op_ptr) >>= 1;
+			(*target_op_ptr) |= (gbx_register.F_C << 7);
+
+			calc_Z_Flag__8bit(*target_op_ptr);
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
 		else {
-			gbx_register.F_C = 0;
+			if ((read_RAM_8bit(gbx_register.HL) & 0b00000001) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			//(*target_op_ptr) >>= 1;
+			//(*target_op_ptr) |= (gbx_register.F_C << 7);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) >> 1);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) | (gbx_register.F_C << 7));
+
+			calc_Z_Flag__8bit(read_RAM_8bit(gbx_register.HL));
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
-
-		(*target_op_ptr) >>= 1;
-		(*target_op_ptr) |= (gbx_register.F_C << 7);
-
-		calc_Z_Flag__8bit(*target_op_ptr);
-		gbx_register.F_N = 0;
-		gbx_register.F_H = 0;
 	}
 
 	void PREFIX_process__RL(uint8_t* target_op_ptr) {
-		uint8_t bef_C_Flag = gbx_register.F_C;
+		if (target_op_ptr != nullptr) {
+			uint8_t bef_C_Flag = gbx_register.F_C;
 
-		if (((*target_op_ptr) & 0b10000000) != 0) {
-			gbx_register.F_C = 1;
+			if (((*target_op_ptr) & 0b10000000) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			(*target_op_ptr) <<= 1;
+			(*target_op_ptr) |= bef_C_Flag;
+
+			calc_Z_Flag__8bit(*target_op_ptr);
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
 		else {
-			gbx_register.F_C = 0;
+			uint8_t bef_C_Flag = gbx_register.F_C;
+
+			if ((read_RAM_8bit(gbx_register.HL) & 0b10000000) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			//(*target_op_ptr) <<= 1;
+			//(*target_op_ptr) |= bef_C_Flag;
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) << 1);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) | bef_C_Flag);
+
+			calc_Z_Flag__8bit(read_RAM_8bit(gbx_register.HL));
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
-
-		(*target_op_ptr) <<= 1;
-		(*target_op_ptr) |= bef_C_Flag;
-
-		calc_Z_Flag__8bit(*target_op_ptr);
-		gbx_register.F_N = 0;
-		gbx_register.F_H = 0;
 	}
 
 	void PREFIX_process__RR(uint8_t* target_op_ptr) {
-		uint8_t bef_C_Flag = gbx_register.F_C;
+		if (target_op_ptr != nullptr) {
+			uint8_t bef_C_Flag = gbx_register.F_C;
 
-		if (((*target_op_ptr) & 0b00000001) != 0) {
-			gbx_register.F_C = 1;
+			if (((*target_op_ptr) & 0b00000001) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			(*target_op_ptr) >>= 1;
+			(*target_op_ptr) |= (bef_C_Flag << 7);
+
+			calc_Z_Flag__8bit(*target_op_ptr);
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
 		else {
-			gbx_register.F_C = 0;
+			uint8_t bef_C_Flag = gbx_register.F_C;
+
+			if ((read_RAM_8bit(gbx_register.HL) & 0b00000001) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			//(*target_op_ptr) >>= 1;
+			//(*target_op_ptr) |= (bef_C_Flag << 7);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) >> 1);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) | (bef_C_Flag << 7));
+
+			calc_Z_Flag__8bit(read_RAM_8bit(gbx_register.HL));
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
-
-		(*target_op_ptr) >>= 1;
-		(*target_op_ptr) |= (bef_C_Flag << 7);
-
-		calc_Z_Flag__8bit(*target_op_ptr);
-		gbx_register.F_N = 0;
-		gbx_register.F_H = 0;
 	}
 
 	void PREFIX_process__SLA(uint8_t* target_op_ptr) {
-		if (((*target_op_ptr) & 0b10000000) != 0) {
-			gbx_register.F_C = 1;
+		if (target_op_ptr != nullptr) {
+			if (((*target_op_ptr) & 0b10000000) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			(*target_op_ptr) <<= 1;
+
+			calc_Z_Flag__8bit(*target_op_ptr);
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
 		else {
-			gbx_register.F_C = 0;
+			if ((read_RAM_8bit(gbx_register.HL) & 0b10000000) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			//(*target_op_ptr) <<= 1;
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) << 1);
+
+			calc_Z_Flag__8bit(read_RAM_8bit(gbx_register.HL));
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
-
-		(*target_op_ptr) <<= 1;
-
-		calc_Z_Flag__8bit(*target_op_ptr);
-		gbx_register.F_N = 0;
-		gbx_register.F_H = 0;
 	}
 
 	void PREFIX_process__SRA(uint8_t* target_op_ptr) {
-		uint8_t bef_sign = (((*target_op_ptr) & 0b10000000) != 0) ? 1 : 0;
+		if (target_op_ptr != nullptr) {
+			uint8_t bef_sign = (((*target_op_ptr) & 0b10000000) != 0) ? 1 : 0;
 
-		if (((*target_op_ptr) & 0b00000001) != 0) {
-			gbx_register.F_C = 1;
+			if (((*target_op_ptr) & 0b00000001) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			(*target_op_ptr) >>= 1;
+			(*target_op_ptr) &= 0b01111111;
+			(*target_op_ptr) |= (bef_sign << 7);
+
+			calc_Z_Flag__8bit(*target_op_ptr);
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
 		else {
-			gbx_register.F_C = 0;
+			uint8_t bef_sign = ((read_RAM_8bit(gbx_register.HL) & 0b10000000) != 0) ? 1 : 0;
+
+			if ((read_RAM_8bit(gbx_register.HL) & 0b00000001) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			//(*target_op_ptr) >>= 1;
+			//(*target_op_ptr) &= 0b01111111;
+			//(*target_op_ptr) |= (bef_sign << 7);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) >> 1);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) & 0b01111111);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) | (bef_sign << 7));
+
+			calc_Z_Flag__8bit(read_RAM_8bit(gbx_register.HL));
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
-
-		(*target_op_ptr) >>= 1;
-		(*target_op_ptr) &= 0b01111111;
-		(*target_op_ptr) |= (bef_sign << 7);
-
-		calc_Z_Flag__8bit(*target_op_ptr);
-		gbx_register.F_N = 0;
-		gbx_register.F_H = 0;
 	}
 
 	void PREFIX_process__SWAP(uint8_t* target_op_ptr) {
-		uint8_t bef_value = (*target_op_ptr);
+		if (target_op_ptr != nullptr) {
+			uint8_t bef_value = (*target_op_ptr);
 
-		(*target_op_ptr) >>= 4;
-		(*target_op_ptr) &= 0b00001111;
-		(*target_op_ptr) |= ((bef_value << 4) & 0b11110000);
+			(*target_op_ptr) >>= 4;
+			(*target_op_ptr) &= 0b00001111;
+			(*target_op_ptr) |= ((bef_value << 4) & 0b11110000);
 
-		calc_Z_Flag__8bit(*target_op_ptr);
-		gbx_register.F_C = 0;
-		gbx_register.F_H = 0;
-		gbx_register.F_N = 0;
+			calc_Z_Flag__8bit(*target_op_ptr);
+			gbx_register.F_C = 0;
+			gbx_register.F_H = 0;
+			gbx_register.F_N = 0;
+		}
+		else {
+			uint8_t bef_value = read_RAM_8bit(gbx_register.HL);
+
+			//(*target_op_ptr) >>= 4;
+			//(*target_op_ptr) &= 0b00001111;
+			//(*target_op_ptr) |= ((bef_value << 4) & 0b11110000);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) >> 4);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) & 0b00001111);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) | ((bef_value << 4) & 0b11110000));
+
+			calc_Z_Flag__8bit(read_RAM_8bit(gbx_register.HL));
+			gbx_register.F_C = 0;
+			gbx_register.F_H = 0;
+			gbx_register.F_N = 0;
+		}
 	}
 
 	void PREFIX_process__SRL(uint8_t* target_op_ptr) {
-		if (((*target_op_ptr) & 0b00000001) != 0) {
-			gbx_register.F_C = 1;
+		if (target_op_ptr != nullptr) {
+			if (((*target_op_ptr) & 0b00000001) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			(*target_op_ptr) >>= 1;
+
+			calc_Z_Flag__8bit(*target_op_ptr);
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
 		else {
-			gbx_register.F_C = 0;
+			if ((read_RAM_8bit(gbx_register.HL) & 0b00000001) != 0) {
+				gbx_register.F_C = 1;
+			}
+			else {
+				gbx_register.F_C = 0;
+			}
+
+			//(*target_op_ptr) >>= 1;
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) >> 1);
+
+			calc_Z_Flag__8bit(read_RAM_8bit(gbx_register.HL));
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 0;
 		}
-
-		(*target_op_ptr) >>= 1;
-
-		calc_Z_Flag__8bit(*target_op_ptr);
-		gbx_register.F_N = 0;
-		gbx_register.F_H = 0;
 	}
 
 
 	void PREFIX_sub_process__BIT(uint8_t check_bit, uint8_t* target_op_ptr) {
-		if (((*target_op_ptr) & (0b00000001 << check_bit)) == 0) {
-			gbx_register.F_Z = 1;
+		if (target_op_ptr != nullptr) {
+			if (((*target_op_ptr) & (0b00000001 << check_bit)) == 0) {
+				gbx_register.F_Z = 1;
+			}
+			else {
+				gbx_register.F_Z = 0;
+			}
+
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 1;
 		}
 		else {
-			gbx_register.F_Z = 0;
-		}
+			if ((read_RAM_8bit(gbx_register.HL) & (0b00000001 << check_bit)) == 0) {
+				gbx_register.F_Z = 1;
+			}
+			else {
+				gbx_register.F_Z = 0;
+			}
 
-		gbx_register.F_N = 0;
-		gbx_register.F_H = 1;
+			gbx_register.F_N = 0;
+			gbx_register.F_H = 1;
+		}
 	}
 	void PREFIX_process__BIT_0(uint8_t* target_op_ptr) {
 		PREFIX_sub_process__BIT(0, target_op_ptr);
@@ -4953,7 +5129,13 @@ private:
 	}
 
 	void PREFIX_sub_process__RES(uint8_t clear_bit, uint8_t* target_op_ptr) {
-		(*target_op_ptr) &= (uint8_t)(~(0b00000001 << clear_bit));
+		if (target_op_ptr != nullptr) {
+			(*target_op_ptr) &= (uint8_t)(~(0b00000001 << clear_bit));
+		}
+		else {
+			//(*target_op_ptr) &= (uint8_t)(~(0b00000001 << clear_bit));
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) & (uint8_t)(~(0b00000001 << clear_bit)));
+		}
 	}
 	void PREFIX_process__RES_0(uint8_t* target_op_ptr) {
 		PREFIX_sub_process__RES(0, target_op_ptr);
@@ -4981,7 +5163,13 @@ private:
 	}
 
 	void PREFIX_sub_process__SET(uint8_t set_bit, uint8_t* target_op_ptr) {
-		(*target_op_ptr) |= (0b00000001 << set_bit);
+		if (target_op_ptr != nullptr) {
+			(*target_op_ptr) |= (0b00000001 << set_bit);
+		}
+		else {
+			//(*target_op_ptr) |= (0b00000001 << set_bit);
+			write_RAM_8bit(gbx_register.HL, read_RAM_8bit(gbx_register.HL) | (0b00000001 << set_bit));
+		}
 	}
 	void PREFIX_process__SET_0(uint8_t* target_op_ptr) {
 		PREFIX_sub_process__SET(0, target_op_ptr);
@@ -6037,7 +6225,9 @@ private:
 			if (current_STAT_mode == 0) {//0: HBlank
 				//LCD_STAT割り込み HBLANK
 				if ((read_RAM_8bit(0xFF41) & 0b00001000) != 0) {//Bit 3 - Mode 0 HBlank STAT Interrupt source
-					gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
+					if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
+					}
 				}
 
 				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
@@ -6047,13 +6237,17 @@ private:
 			else if (current_STAT_mode == 1) {//1: VBlank
 				//LCD_STAT割り込み VBLANK
 				if ((read_RAM_8bit(0xFF41) & 0b00010000) != 0) {//Bit 4 - Mode 1 VBlank STAT Interrupt source
-					gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
+					if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
+					}
 				}
 			}
 			else if (current_STAT_mode == 2) {//2: Searching OAM
 				//LCD_STAT割り込み OAM
 				if ((read_RAM_8bit(0xFF41) & 0b00100000) != 0) {//Bit 5 - Mode 2 OAM STAT Interrupt source
-					gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
+					if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
+					}
 				}
 			}
 		}
@@ -6077,7 +6271,9 @@ private:
 					write_RAM_8bit(0xFF44, ppu_line_y);
 
 					if (ppu_line_y == 144) {//Vblank開始
-						gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblankの割り込みを要求する
+						if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+							gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblankの割り込みを要求する
+						}
 					}
 
 					if (ppu_line_y >= 154) {//Vblank終了
@@ -6137,7 +6333,9 @@ private:
 				//LCD_STAT割り込み LYC=LY
 				if ((read_RAM_8bit(0xFF41) & 0b01000000) != 0) {//Bit 6 - LYC=LY STAT Interrupt source
 					if (ppu_line_y == read_RAM_8bit(0xFF45)) {
-						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
+						if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+							gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
+						}
 					}
 				}
 				//LCD_STATのLYC=LYのフラグを更新する
@@ -6151,7 +6349,9 @@ private:
 
 				if (ppu_line_y == 144) {//Vblank開始
 					//初めてのときはVblankの割り込みを要求する
-					gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblankの割り込みを要求する
+					if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+						gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblankの割り込みを要求する
+					}
 				}
 
 				if (ppu_line_y >= 154) {//Vblank終了
@@ -6777,11 +6977,21 @@ public:
 
 			//=========================================================
 			
-			// if (booting_flag == false) {
+			//if (booting_flag == false) {
 			//		M_debug_printf("=========================================================\n");
 			//		M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
 			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
+			//		//M_debug_printf("IME_Flag = %s, IE = 0x%02x, IF = 0x%02x\n", (IME_Flag == true) ? "true" : "false", gbx_ram.RAM[0xFFFF], gbx_ram.RAM[0xFF0F]);
+			//}
+
+			//if (key->get_input_state__normal__(INPUT_MY_ID_SELECT) != 0) {
+			//	if (booting_flag == false) {
+			//		M_debug_printf("=========================================================\n");
+			//		M_debug_printf("PC:0x%04x [命令:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
+			//		//M_debug_printf("IME_Flag = %s, IE = 0x%02x, IF = 0x%02x\n", (IME_Flag == true) ? "true" : "false", gbx_ram.RAM[0xFFFF], gbx_ram.RAM[0xFF0F]);
 			//	}
+			//}
 
 			//=========================================================
 
