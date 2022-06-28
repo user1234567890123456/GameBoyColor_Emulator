@@ -6225,9 +6225,9 @@ private:
 			if (current_STAT_mode == 0) {//0: HBlank
 				//LCD_STAT割り込み HBLANK
 				if ((read_RAM_8bit(0xFF41) & 0b00001000) != 0) {//Bit 3 - Mode 0 HBlank STAT Interrupt source
-					if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
 						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
-					}
+					//}
 				}
 
 				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
@@ -6237,17 +6237,17 @@ private:
 			else if (current_STAT_mode == 1) {//1: VBlank
 				//LCD_STAT割り込み VBLANK
 				if ((read_RAM_8bit(0xFF41) & 0b00010000) != 0) {//Bit 4 - Mode 1 VBlank STAT Interrupt source
-					if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
 						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
-					}
+					//}
 				}
 			}
 			else if (current_STAT_mode == 2) {//2: Searching OAM
 				//LCD_STAT割り込み OAM
 				if ((read_RAM_8bit(0xFF41) & 0b00100000) != 0) {//Bit 5 - Mode 2 OAM STAT Interrupt source
-					if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
 						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
-					}
+					//}
 				}
 			}
 		}
@@ -6270,11 +6270,11 @@ private:
 					ppu_line_y++;
 					write_RAM_8bit(0xFF44, ppu_line_y);
 
-					if (ppu_line_y == 144) {//Vblank開始
-						if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
-							gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblankの割り込みを要求する
-						}
-					}
+					//if (ppu_line_y == 144) {//Vblank開始
+					//	if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+					//		gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblankの割り込みを要求する
+					//	}
+					//}
 
 					if (ppu_line_y >= 154) {//Vblank終了
 						c_cycle_mod = c_cycle - (k + 1);//余りのC-Cycleを計算する
@@ -6333,9 +6333,9 @@ private:
 				//LCD_STAT割り込み LYC=LY
 				if ((read_RAM_8bit(0xFF41) & 0b01000000) != 0) {//Bit 6 - LYC=LY STAT Interrupt source
 					if (ppu_line_y == read_RAM_8bit(0xFF45)) {
-						if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+						//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
 							gbx_ram.RAM[0xFF0F] |= 0b00000010;//STAT割り込みを要求する
-						}
+						//}
 					}
 				}
 				//LCD_STATのLYC=LYのフラグを更新する
@@ -6349,9 +6349,9 @@ private:
 
 				if (ppu_line_y == 144) {//Vblank開始
 					//初めてのときはVblankの割り込みを要求する
-					if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
+					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDが有効な時
 						gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblankの割り込みを要求する
-					}
+					//}
 				}
 
 				if (ppu_line_y >= 154) {//Vblank終了
