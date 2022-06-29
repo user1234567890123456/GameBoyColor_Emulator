@@ -170,6 +170,7 @@
     <ClCompile Include="MyFont.cpp" />
     <ClCompile Include="My_Input.cpp" />
     <ClCompile Include="My_Random.cpp" />
+    <ClCompile Include="VoiceCallBack.cpp" />
     <ClCompile Include="XOR.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -198,6 +199,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
     <ClInclude Include="SystemDefine.h" />
+    <ClInclude Include="VoiceCallBack.h" />
     <ClInclude Include="XOR.h" />
   </ItemGroup>
   <ItemGroup>

@@ -22,21 +22,18 @@ public:
 
 	APU() {
 		HRESULT hr;
-		if (FAILED(hr = CoInitializeEx(NULL, COINIT_MULTITHREADED))) {
+		if (FAILED(hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED))) {
 			M_debug_printf("ERROR CoInitializeEx\n");
 		}
-
-		UINT32 flags = 0;
-#ifdef _DEBUG
-		flags |= XAUDIO2_DEBUG_ENGINE;
-#endif
-		if (FAILED(hr = XAudio2Create(&xaudio, flags))) {
+		if (FAILED(hr = XAudio2Create(&xaudio))) {
 			M_debug_printf("ERROR XAudio2Create\n");
 		}
 
 		if (FAILED(hr = xaudio->CreateMasteringVoice(&mastering_voice))) {
 			M_debug_printf("ERROR CreateMasteringVoice\n");
 		}
+
+		mastering_voice->SetVolume(0.02);
 
 		ch1 = new Channel(Channel::CH_TYPE::CH1, xaudio);
 		ch2 = new Channel(Channel::CH_TYPE::CH2, xaudio);
@@ -76,9 +73,17 @@ public:
 	}
 
 	void execute_all_channel() {
-		ch1->execute();
-		ch2->execute();
-		ch3->execute();
-		ch4->execute();
+		if (all_channel_enable_flag == true) {
+			ch1->execute();
+			ch2->execute();
+			ch3->execute();
+			ch4->execute();
+		}
+		else {
+			ch1->execute_sleep();
+			ch2->execute_sleep();
+			ch3->execute_sleep();
+			ch4->execute_sleep();
+		}
 	}
 };

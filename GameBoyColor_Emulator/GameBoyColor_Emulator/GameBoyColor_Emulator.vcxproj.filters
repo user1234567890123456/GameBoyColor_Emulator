@@ -90,6 +90,9 @@
     <ClCompile Include="MyDirectXChar.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="VoiceCallBack.cpp">
+      <Filter>ソース ファイル\Sound</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CRC.h">
@@ -169,6 +172,9 @@
     </ClInclude>
     <ClInclude Include="MyDirectXString.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="VoiceCallBack.h">
+      <Filter>ヘッダー ファイル\Sound</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
