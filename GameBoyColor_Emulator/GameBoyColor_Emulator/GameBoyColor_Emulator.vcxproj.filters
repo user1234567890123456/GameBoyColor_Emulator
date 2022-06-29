@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="ソース ファイル\Sound">
+      <UniqueIdentifier>{f0a21477-0095-4cef-8e4a-6f9d543b0729}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Sound">
+      <UniqueIdentifier>{e126336f-d951-43ae-8b5b-6881bf265dba}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CRC.cpp">
@@ -70,6 +76,18 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="GameBoyColor.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Channel.cpp">
+      <Filter>ソース ファイル\Sound</Filter>
+    </ClCompile>
+    <ClCompile Include="APU.cpp">
+      <Filter>ソース ファイル\Sound</Filter>
+    </ClCompile>
+    <ClCompile Include="MyDirectXString.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="MyDirectXChar.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -140,10 +158,30 @@
     <ClInclude Include="GameBoyColor.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Channel.h">
+      <Filter>ヘッダー ファイル\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="APU.h">
+      <Filter>ヘッダー ファイル\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="MyDirectXChar.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="MyDirectXString.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bootrom\bootrom_256byte.bin">
+      <Filter>リソース ファイル</Filter>
+    </None>
+    <None Include="bootrom\bootrom_cgb.bin">
+      <Filter>リソース ファイル</Filter>
+    </None>
   </ItemGroup>
 </Project>

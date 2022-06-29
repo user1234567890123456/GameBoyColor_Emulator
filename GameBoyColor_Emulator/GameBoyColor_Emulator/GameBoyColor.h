@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 using namespace std;
 
@@ -13,18 +13,31 @@ using namespace std;
 #include "Key.h"
 #include "MyDirectXSystem.h"
 #include "MyDirectXDraw.h"
+#include "APU.h"
+#include "MyDirectXString.h"
 
 #define INSTRUCTION_NUM 256
 
-#define CPU_FREQ 4194304//CPU‚Ìü”g”(hz)
+#define CPU_FREQ 4194304//CPUã®å‘¨æ³¢æ•°(hz)
 
 
 class GameBoyColor
 {
 private:
 
-	//ƒGƒ~ƒ…ƒŒ[ƒ^“à‚ÌRAM‚ğƒRƒs[‚·‚éÛ‚Ég‚¤ŠÖ”
-	//ƒoƒ“ƒN‚ª‘¶İ‚·‚é‚È‚Ç‚Ì——R‚Å‚±‚ê‚ğg‚í‚È‚¢‚ÆRAM“à‚Í³í‚ÉƒRƒs[‚Å‚«‚È‚¢
+
+	APU* apu;
+
+
+	MyDirectXSystem* myDirectXSystem;
+
+
+	MyDirectXString* debug_info_font_1;
+
+
+
+	//ã‚¨ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚¿å†…ã®RAMã‚’ã‚³ãƒ”ãƒ¼ã™ã‚‹éš›ã«ä½¿ã†é–¢æ•°
+	//ãƒãƒ³ã‚¯ãŒå­˜åœ¨ã™ã‚‹ãªã©ã®ç†ç”±ã§ã“ã‚Œã‚’ä½¿ã‚ãªã„ã¨RAMå†…ã¯æ­£å¸¸ã«ã‚³ãƒ”ãƒ¼ã§ããªã„
 	void My_Emulator_RAM_memcpy(uint16_t emu_RAM_dst_address, uint16_t emu_RAM_src_address, uint16_t size) {
 		for (int i = 0; i < size; i++) {
 			write_RAM_8bit(emu_RAM_dst_address + i, read_RAM_8bit(emu_RAM_src_address + i));
@@ -33,7 +46,7 @@ private:
 
 
 
-	bool FATAL_ERROR_FLAG = false;//ƒ[ƒh‚È‚Ç‚Å‘±s•s”\‚ÈƒGƒ‰[‚ª”­¶‚µ‚½‚©
+	bool FATAL_ERROR_FLAG = false;//ãƒ­ãƒ¼ãƒ‰ãªã©ã§ç¶šè¡Œä¸èƒ½ãªã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ãŸã‹
 
 
 
@@ -41,8 +54,8 @@ private:
 
 
 
-	bool SET_CPU_Clock_2x_Flag__CGB = false;//CPU‚ÌSTOP–½—ß‚ÅƒZƒbƒg‚·‚éƒ‚[ƒh
-	bool CURRENT_CPU_Clock_2x_Flag__CGB = false;//CPU‚ª”{‘¬ƒ‚[ƒh‚©
+	bool SET_CPU_Clock_2x_Flag__CGB = false;//CPUã®STOPå‘½ä»¤ã§ã‚»ãƒƒãƒˆã™ã‚‹ãƒ¢ãƒ¼ãƒ‰
+	bool CURRENT_CPU_Clock_2x_Flag__CGB = false;//CPUãŒå€é€Ÿãƒ¢ãƒ¼ãƒ‰ã‹
 
 
 
@@ -51,8 +64,8 @@ private:
 
 
 #define BOOT_ROM_SIZE 0x100
-	bool booting_flag = true;//ƒu[ƒgƒƒ€‚ğÀs’†‚È‚çtrue
-	//ƒu[ƒgƒƒ€‚ÌƒR[ƒh
+	bool booting_flag = true;//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ã‚’å®Ÿè¡Œä¸­ãªã‚‰true
+	//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ã®ã‚³ãƒ¼ãƒ‰
 	//const uint8_t READ_ONLY_BOOTROM_CODE_256byte[BOOT_ROM_SIZE] = {
 	//	0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??,
 	//	0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??,
@@ -72,11 +85,11 @@ private:
 	//	0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??, 0x??,
 	//};
 	uint8_t bootrom_256byte[BOOT_ROM_SIZE];
-	void init_bootrom() {//ƒu[ƒgƒƒ€‚Ì‰Šú‰»‚ğ‚·‚é
+	void init_bootrom() {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ã®åˆæœŸåŒ–ã‚’ã™ã‚‹
 		static uint8_t* READ_ONLY_BOOTROM_CODE_256byte;
 
-		//‚±‚ÌƒvƒƒOƒ‰ƒ€‚ğƒrƒ‹ƒh‚·‚éÛ‚Í•K‚¸³‚µ‚¢256ƒoƒCƒg‚Ìbootrom‚ÌƒoƒCƒiƒŠƒtƒ@ƒCƒ‹‚ğ "bootrom/bootrom_256byte.bin" ‚É“ü‚ê‚é‚±‚Æ
-		//³‚µ‚­‚È‚¢‚Æ³í‚É“®‚©‚È‚¢‚±‚Æ‚ª‚ ‚é
+		//ã“ã®ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚’ãƒ“ãƒ«ãƒ‰ã™ã‚‹éš›ã¯å¿…ãšæ­£ã—ã„256ãƒã‚¤ãƒˆã®bootromã®ãƒã‚¤ãƒŠãƒªãƒ•ã‚¡ã‚¤ãƒ«ã‚’ "bootrom/bootrom_256byte.bin" ã«å…¥ã‚Œã‚‹ã“ã¨
+		//æ­£ã—ããªã„ã¨æ­£å¸¸ã«å‹•ã‹ãªã„ã“ã¨ãŒã‚ã‚‹
 		HGLOBAL hGM = LoadResource(NULL, FindResource(NULL, TEXT("BOOTROM_BIN"), TEXT("BINARY")));
 		READ_ONLY_BOOTROM_CODE_256byte = (uint8_t*)LockResource(hGM);
 
@@ -85,11 +98,11 @@ private:
 
 #define BOOT_ROM_SIZE_CGB 0x900
 	uint8_t bootrom_2048byte__cgb[BOOT_ROM_SIZE_CGB];
-	void init_bootrom__cgb() {//ƒu[ƒgƒƒ€‚Ì‰Šú‰»‚ğ‚·‚é(ƒQ[ƒ€ƒ{[ƒCƒJƒ‰[)
+	void init_bootrom__cgb() {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ã®åˆæœŸåŒ–ã‚’ã™ã‚‹(ã‚²ãƒ¼ãƒ ãƒœãƒ¼ã‚¤ã‚«ãƒ©ãƒ¼)
 		static uint8_t* READ_ONLY_BOOTROM_CODE_2048byte__cgb;
 
-		//‚±‚ÌƒvƒƒOƒ‰ƒ€‚ğƒrƒ‹ƒh‚·‚éÛ‚Í•K‚¸³‚µ‚¢CGB‚Ìbootrom‚ÌƒoƒCƒiƒŠƒtƒ@ƒCƒ‹(0x900ƒoƒCƒg)‚ğ "bootrom/bootrom_cgb.bin" ‚É“ü‚ê‚é‚±‚Æ
-		//³‚µ‚­‚È‚¢‚Æ³í‚É“®‚©‚È‚¢‚±‚Æ‚ª‚ ‚é
+		//ã“ã®ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚’ãƒ“ãƒ«ãƒ‰ã™ã‚‹éš›ã¯å¿…ãšæ­£ã—ã„CGBã®bootromã®ãƒã‚¤ãƒŠãƒªãƒ•ã‚¡ã‚¤ãƒ«(0x900ãƒã‚¤ãƒˆ)ã‚’ "bootrom/bootrom_cgb.bin" ã«å…¥ã‚Œã‚‹ã“ã¨
+		//æ­£ã—ããªã„ã¨æ­£å¸¸ã«å‹•ã‹ãªã„ã“ã¨ãŒã‚ã‚‹
 		HGLOBAL hGM = LoadResource(NULL, FindResource(NULL, TEXT("BOOTROM_CGB_BIN"), TEXT("BINARY")));
 		READ_ONLY_BOOTROM_CODE_2048byte__cgb = (uint8_t*)LockResource(hGM);
 
@@ -147,7 +160,7 @@ private:
 		if (_2bit_color_no == 0) {
 			//color_data = (valid_palette_data & 0b00000011);
 
-			return 0x00000000;//F”Ô†‚ª‰ºˆÊ2bit‚Ì‚Æ‚«‚Í“§–¾‚ğ•Ô‚·
+			return 0x00000000;//è‰²ç•ªå·ãŒä¸‹ä½2bitã®ã¨ãã¯é€æ˜ã‚’è¿”ã™
 		}
 		else if (_2bit_color_no == 1) {
 			color_data = ((valid_palette_data >> 2) & 0b00000011);
@@ -167,26 +180,26 @@ private:
 
 	/*
 	0   BGP0
-			- F”Ô†0‚ÌFƒf[ƒ^(2ƒoƒCƒg, Œãq)
-			- F”Ô†1
-			- F”Ô†2
-			- F”Ô†3
+			- è‰²ç•ªå·0ã®è‰²ãƒ‡ãƒ¼ã‚¿(2ãƒã‚¤ãƒˆ, å¾Œè¿°)
+			- è‰²ç•ªå·1
+			- è‰²ç•ªå·2
+			- è‰²ç•ªå·3
 	8   BGP1
-			- F”Ô†0
-			- F”Ô†1
-			- F”Ô†2
-			- F”Ô†3
+			- è‰²ç•ªå·0
+			- è‰²ç•ªå·1
+			- è‰²ç•ªå·2
+			- è‰²ç•ªå·3
 	16  BGP2
-			- F”Ô†0
-			- F”Ô†1
-			- F”Ô†2
-			- F”Ô†3
+			- è‰²ç•ªå·0
+			- è‰²ç•ªå·1
+			- è‰²ç•ªå·2
+			- è‰²ç•ªå·3
 		...
 	56  BGP7
-			- F”Ô†0
-			- F”Ô†1
-			- F”Ô†2
-			- F”Ô†3
+			- è‰²ç•ªå·0
+			- è‰²ç•ªå·1
+			- è‰²ç•ªå·2
+			- è‰²ç•ªå·3
 	*/
 	uint8_t cgb_color_list_bg_window_index = 0;
 	bool cgb_color_list_bg_window_auto_inc_flag = false;
@@ -500,7 +513,7 @@ private:
 	uint64_t cpu_machine_cycle = 0;
 	uint64_t total_cpu_machine_cycle__div = 0;
 	uint64_t total_cpu_machine_cycle__tima = 0;
-	//ƒ}ƒVƒ“ƒTƒCƒNƒ‹(ƒNƒƒbƒNƒTƒCƒNƒ‹‚Å‚Í‚È‚¢)
+	//ãƒã‚·ãƒ³ã‚µã‚¤ã‚¯ãƒ«(ã‚¯ãƒ­ãƒƒã‚¯ã‚µã‚¤ã‚¯ãƒ«ã§ã¯ãªã„)
 	uint32_t instruction_machine_cycle_table[INSTRUCTION_NUM] = {
 		1, //0x00
 		3, //0x01
@@ -534,7 +547,7 @@ private:
 		1, //0x1d
 		2, //0x1e
 		1, //0x1f
-		2, //0x20(•ªŠò‚·‚é‚Æ‚«+1)
+		2, //0x20(åˆ†å²ã™ã‚‹ã¨ã+1)
 		3, //0x21
 		2, //0x22
 		2, //0x23
@@ -542,7 +555,7 @@ private:
 		1, //0x25
 		2, //0x26
 		1, //0x27
-		2, //0x28(•ªŠò‚·‚é‚Æ‚«+1)
+		2, //0x28(åˆ†å²ã™ã‚‹ã¨ã+1)
 		2, //0x29
 		2, //0x2a
 		2, //0x2b
@@ -550,7 +563,7 @@ private:
 		1, //0x2d
 		2, //0x2e
 		1, //0x2f
-		2, //0x30(•ªŠò‚·‚é‚Æ‚«+1)
+		2, //0x30(åˆ†å²ã™ã‚‹ã¨ã+1)
 		3, //0x31
 		2, //0x32
 		2, //0x33
@@ -558,7 +571,7 @@ private:
 		3, //0x35
 		3, //0x36
 		1, //0x37
-		2, //0x38(•ªŠò‚·‚é‚Æ‚«+1)
+		2, //0x38(åˆ†å²ã™ã‚‹ã¨ã+1)
 		2, //0x39
 		2, //0x3a
 		2, //0x3b
@@ -694,35 +707,35 @@ private:
 		1, //0xbd
 		2, //0xbe
 		1, //0xbf
-		2, //0xc0(•ªŠò‚·‚é‚Æ‚«+3)
+		2, //0xc0(åˆ†å²ã™ã‚‹ã¨ã+3)
 		3, //0xc1
-		3, //0xc2(•ªŠò‚·‚é‚Æ‚«+1)
+		3, //0xc2(åˆ†å²ã™ã‚‹ã¨ã+1)
 		4, //0xc3
-		3, //0xc4(•ªŠò‚·‚é‚Æ‚«+3)
+		3, //0xc4(åˆ†å²ã™ã‚‹ã¨ã+3)
 		4, //0xc5
 		2, //0xc6
 		4, //0xc7
-		2, //0xc8(•ªŠò‚·‚é‚Æ‚«+3)
+		2, //0xc8(åˆ†å²ã™ã‚‹ã¨ã+3)
 		4, //0xc9
-		3, //0xca(•ªŠò‚·‚é‚Æ‚«+1)
+		3, //0xca(åˆ†å²ã™ã‚‹ã¨ã+1)
 		1, //0xcb
-		3, //0xcc(•ªŠò‚·‚é‚Æ‚«+3)
+		3, //0xcc(åˆ†å²ã™ã‚‹ã¨ã+3)
 		6, //0xcd
 		2, //0xce
 		4, //0xcf
-		2, //0xd0(•ªŠò‚·‚é‚Æ‚«+3)
+		2, //0xd0(åˆ†å²ã™ã‚‹ã¨ã+3)
 		3, //0xd1
-		3, //0xd2(•ªŠò‚·‚é‚Æ‚«+1)
+		3, //0xd2(åˆ†å²ã™ã‚‹ã¨ã+1)
 		0xDEADBEEF, //0xd3
-		3, //0xd4(•ªŠò‚·‚é‚Æ‚«+3)
+		3, //0xd4(åˆ†å²ã™ã‚‹ã¨ã+3)
 		4, //0xd5
 		2, //0xd6
 		4, //0xd7
-		2, //0xd8(•ªŠò‚·‚é‚Æ‚«+3)
+		2, //0xd8(åˆ†å²ã™ã‚‹ã¨ã+3)
 		4, //0xd9
-		3, //0xda(•ªŠò‚·‚é‚Æ‚«+1)
+		3, //0xda(åˆ†å²ã™ã‚‹ã¨ã+1)
 		0xDEADBEEF, //0xdb
-		3, //0xdc(•ªŠò‚·‚é‚Æ‚«+3)
+		3, //0xdc(åˆ†å²ã™ã‚‹ã¨ã+3)
 		0xDEADBEEF, //0xdd
 		2, //0xde
 		4, //0xdf
@@ -837,8 +850,8 @@ private:
 	};
 	GBX_RAM gbx_ram;
 
-	uint8_t* ROM_bank_data_ptr;//ROM‚ª32KBˆÈã‚Ì‚Æ‚«‚Ég‚¤‚â‚Â
-	uint8_t* SRAM_bank_data_ptr;//RAM‚ª8KBˆÈã‚Ì‚Æ‚«‚Ég‚¤‚â‚Â
+	uint8_t* ROM_bank_data_ptr;//ROMãŒ32KBä»¥ä¸Šã®ã¨ãã«ä½¿ã†ã‚„ã¤
+	uint8_t* SRAM_bank_data_ptr;//RAMãŒ8KBä»¥ä¸Šã®ã¨ãã«ä½¿ã†ã‚„ã¤
 
 	uint8_t VRAM_bank_no__cgb = 0;
 	uint8_t VRAM_bank1_data_ptr__cgb[0x2000];
@@ -848,17 +861,17 @@ private:
 	bool IME_Flag = false;
 
 	enum class CART_MBC_TYPE {
-		ROM,//MBC1‚Æ“¯‚¶ˆ—‚ğ‚·‚é
+		ROM,//MBC1ã¨åŒã˜å‡¦ç†ã‚’ã™ã‚‹
 		MBC1,
 		MBC2,
 		MBC3,
 		MBC5,
 		HuC1,
-		OTHER,//‚±‚ÌƒGƒ~ƒ…ƒŒ[ƒ^[‚Å‚Í”ñ‘Î‰‚Ì‚â‚Â(ˆê‰MBC1‚Æ“¯‚¶ˆ—‚ğ‚·‚é)
+		OTHER,//ã“ã®ã‚¨ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚¿ãƒ¼ã§ã¯éå¯¾å¿œã®ã‚„ã¤(ä¸€å¿œMBC1ã¨åŒã˜å‡¦ç†ã‚’ã™ã‚‹)
 	};
 	CART_MBC_TYPE cart_mbc_type;
 
-	uint8_t rom_bank_no__low = 1;//‰Šú‚Íƒoƒ“ƒN1‚ğw‚·‚æ‚¤‚É‚·‚é
+	uint8_t rom_bank_no__low = 1;//åˆæœŸã¯ãƒãƒ³ã‚¯1ã‚’æŒ‡ã™ã‚ˆã†ã«ã™ã‚‹
 	uint8_t rom_bank_no__high = 0;
 	uint8_t sram_bank_no = 0;
 	bool SRAM_Enable_Flag = false;
@@ -902,7 +915,7 @@ private:
 		else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
 			use_rom_bank_no = rom_bank_no__low;
 		}
-		use_rom_bank_no &= ((Main::PGM_size >> 4/*16‚ÅŠ„‚é*/) - 1);//PGM‚ÌƒTƒCƒY‚É•K—v‚È”ÍˆÍ“à‚É‚È‚é‚æ‚¤‚ÉAND‚Åi‚é
+		use_rom_bank_no &= ((Main::PGM_size >> 4/*16ã§å‰²ã‚‹*/) - 1);//PGMã®ã‚µã‚¤ã‚ºã«å¿…è¦ãªç¯„å›²å†…ã«ãªã‚‹ã‚ˆã†ã«ANDã§çµã‚‹
 
 		if (use_rom_bank_no == 0) {
 			return &(gbx_ram.RAM[0x0000]);
@@ -925,7 +938,7 @@ private:
 			cart_mbc_type == CART_MBC_TYPE::MBC5 ||
 			cart_mbc_type == CART_MBC_TYPE::HuC1)
 		{
-			use_sram_bank_no = (sram_bank_no & ((Main::SRAM_size >> 3/*8‚ÅŠ„‚é*/) - 1));//SRAM‚ÌƒTƒCƒY‚É•K—v‚È”ÍˆÍ“à‚É‚È‚é‚æ‚¤‚ÉAND‚Åi‚é
+			use_sram_bank_no = (sram_bank_no & ((Main::SRAM_size >> 3/*8ã§å‰²ã‚‹*/) - 1));//SRAMã®ã‚µã‚¤ã‚ºã«å¿…è¦ãªç¯„å›²å†…ã«ãªã‚‹ã‚ˆã†ã«ANDã§çµã‚‹
 		}
 		else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
 			return &(gbx_ram.RAM[0xA000]);
@@ -941,31 +954,31 @@ private:
 
 	uint8_t* getMBC2_RAM_address(uint16_t address) {
 		/*
-		A000-A1FF -> 512x4ƒrƒbƒg‚Ì RAM
-		A200-BFFF -> A000-A1FF‚Ìƒ~ƒ‰[
+		A000-A1FF -> 512x4ãƒ“ãƒƒãƒˆã® RAM
+		A200-BFFF -> A000-A1FFã®ãƒŸãƒ©ãƒ¼
 		*/
 		uint16_t relative_address = address - 0xA000;
-		relative_address %= 0x200;//A000-A1FF‚Ì”ÍˆÍ‚É•ÏŠ·‚·‚é
+		relative_address %= 0x200;//A000-A1FFã®ç¯„å›²ã«å¤‰æ›ã™ã‚‹
 
 		return (uint8_t*)(&(gbx_ram.RAM[0xA000]) + relative_address);
 	}
 
 	uint8_t* get_read_RAM_address___(uint16_t read_address) {
-		if (booting_flag == true) {//ƒu[ƒgƒƒ€’†‚Ì‚Æ‚«
-			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//ƒJƒ‰[‚Å‚È‚¢‚Æ‚«
-				if (read_address < 0x100) {//ƒu[ƒgƒƒ€’†‚©‚Âƒu[ƒgƒƒ€“à‚Ì‚Æ‚«
+		if (booting_flag == true) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ä¸­ã®ã¨ã
+			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//ã‚«ãƒ©ãƒ¼ã§ãªã„ã¨ã
+				if (read_address < 0x100) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ä¸­ã‹ã¤ãƒ–ãƒ¼ãƒˆãƒ­ãƒ å†…ã®ã¨ã
 					return &(bootrom_256byte[read_address]);
 				}
 			}
-			else {//ƒJƒ‰[‚Ì‚Æ‚«
-				if (read_address < 0x100 || (0x200 <= read_address && read_address < 0x900)) {//ƒu[ƒgƒƒ€’†‚©‚Âƒu[ƒgƒƒ€“à‚Ì‚Æ‚«
+			else {//ã‚«ãƒ©ãƒ¼ã®ã¨ã
+				if (read_address < 0x100 || (0x200 <= read_address && read_address < 0x900)) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ä¸­ã‹ã¤ãƒ–ãƒ¼ãƒˆãƒ­ãƒ å†…ã®ã¨ã
 					return &(bootrom_2048byte__cgb[read_address]);
 				}
 			}
 		}
 
 		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
-			if (0x8000 <= read_address && read_address < 0xA000) {//VRAM - GBC‚Å‚Íƒoƒ“ƒN0/1‚ÅØ‚è‘Ö‚¦‰Â”\
+			if (0x8000 <= read_address && read_address < 0xA000) {//VRAM - GBCã§ã¯ãƒãƒ³ã‚¯0/1ã§åˆ‡ã‚Šæ›¿ãˆå¯èƒ½
 				if (VRAM_bank_no__cgb == 0) {
 					return &(gbx_ram.RAM[read_address]);
 				}
@@ -975,23 +988,23 @@ private:
 					return &(VRAM_bank1_data_ptr__cgb[relative_addr]);
 				}
 			}
-			else if (0xD000 <= read_address && read_address < 0xE000) {//WRAM(Bank01~NN) - GBC‚Å‚Íƒoƒ“ƒNØ‚è‘Ö‚¦‰Â”\(ƒoƒ“ƒN”‚ÍƒJ[ƒgƒŠƒbƒW‚ÉˆË‘¶)
+			else if (0xD000 <= read_address && read_address < 0xE000) {//WRAM(Bank01~NN) - GBCã§ã¯ãƒãƒ³ã‚¯åˆ‡ã‚Šæ›¿ãˆå¯èƒ½(ãƒãƒ³ã‚¯æ•°ã¯ã‚«ãƒ¼ãƒˆãƒªãƒƒã‚¸ã«ä¾å­˜)
 				uint16_t relative_addr = read_address - 0xD000;
 				return &(WRAM_bank1_7_data_ptr__cgb[0x1000 * (WRAM_bank_no__cgb - 1) + relative_addr]);
 			}
 		}
 
-		if (read_address <= 0x3FFF) {//ROMƒoƒ“ƒN00
+		if (read_address <= 0x3FFF) {//ROMãƒãƒ³ã‚¯00
 			return &(gbx_ram.RAM[read_address]);
 		}
-		else if (read_address <= 0x7FFF) {//ROMƒoƒ“ƒN01-7F
+		else if (read_address <= 0x7FFF) {//ROMãƒãƒ³ã‚¯01-7F
 			//read_value = gbx_ram.RAM[read_address];
 
 			uint8_t* read_ROM_address = get_read_ROM_address();
 			return &(read_ROM_address[read_address - 0x4000]);
 		}
-		else if (0xA000 <= read_address && read_address <= 0xBFFF) {//RAMƒoƒ“ƒN00-03i‘¶İ‚·‚éê‡j
-			if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2‚Ì‚Æ‚«
+		else if (0xA000 <= read_address && read_address <= 0xBFFF) {//RAMãƒãƒ³ã‚¯00-03ï¼ˆå­˜åœ¨ã™ã‚‹å ´åˆï¼‰
+			if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2ã®ã¨ã
 				return &(*(getMBC2_RAM_address(read_address)));
 			}
 			else {
@@ -999,7 +1012,7 @@ private:
 				return &(read_SRAM_address[read_address - 0xA000]);
 			}
 		}
-		else {//’Êí“Ç‚İæ‚è
+		else {//é€šå¸¸èª­ã¿å–ã‚Š
 			return &(gbx_ram.RAM[read_address]);
 		}
 
@@ -1009,10 +1022,10 @@ private:
 	uint16_t HDMA_src_addr = 0;
 	uint16_t HDMA_dst_addr = 0;
 
-	bool HBlank_DMA_Flag = false;//HBLANKDMA‚ğ‚µ‚Ä‚¢‚é‚©
-	uint16_t HBlank_DMA_Remain_Size = 0x0000;//HBLANK_DMA‚Ìc‚è‚ÌƒTƒCƒY
+	bool HBlank_DMA_Flag = false;//HBLANKDMAã‚’ã—ã¦ã„ã‚‹ã‹
+	uint16_t HBlank_DMA_Remain_Size = 0x0000;//HBLANK_DMAã®æ®‹ã‚Šã®ã‚µã‚¤ã‚º
 	void execute_HBLANK_DMA() {
-		if (HBlank_DMA_Flag == false) {//HBLANKDMA‚ğ‚µ‚Ä‚¢‚È‚¢‚Æ‚«
+		if (HBlank_DMA_Flag == false) {//HBLANKDMAã‚’ã—ã¦ã„ãªã„ã¨ã
 			return;
 		}
 
@@ -1031,16 +1044,16 @@ private:
 	uint8_t read_RAM_8bit(uint16_t read_address) {
 		uint8_t read_value = 0x00;
 	
-		if (booting_flag == true) {//ƒu[ƒgƒƒ€’†‚Ì‚Æ‚«
-			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//ƒJƒ‰[‚Å‚È‚¢‚Æ‚«
-				if (read_address < 0x100) {//ƒu[ƒgƒƒ€’†‚©‚Âƒu[ƒgƒƒ€“à‚Ì‚Æ‚«
+		if (booting_flag == true) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ä¸­ã®ã¨ã
+			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//ã‚«ãƒ©ãƒ¼ã§ãªã„ã¨ã
+				if (read_address < 0x100) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ä¸­ã‹ã¤ãƒ–ãƒ¼ãƒˆãƒ­ãƒ å†…ã®ã¨ã
 					read_value = bootrom_256byte[read_address];
 
 					return read_value;
 				}
 			}
-			else {//ƒJƒ‰[‚Ì‚Æ‚«
-				if (read_address < 0x100 || (0x200 <= read_address && read_address < 0x900)) {//ƒu[ƒgƒƒ€’†‚©‚Âƒu[ƒgƒƒ€“à‚Ì‚Æ‚«
+			else {//ã‚«ãƒ©ãƒ¼ã®ã¨ã
+				if (read_address < 0x100 || (0x200 <= read_address && read_address < 0x900)) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ä¸­ã‹ã¤ãƒ–ãƒ¼ãƒˆãƒ­ãƒ å†…ã®ã¨ã
 					read_value = bootrom_2048byte__cgb[read_address];
 
 					return read_value;
@@ -1049,7 +1062,7 @@ private:
 		}
 
 		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
-			if (0x8000 <= read_address && read_address < 0xA000) {//VRAM - GBC‚Å‚Íƒoƒ“ƒN0/1‚ÅØ‚è‘Ö‚¦‰Â”\
+			if (0x8000 <= read_address && read_address < 0xA000) {//VRAM - GBCã§ã¯ãƒãƒ³ã‚¯0/1ã§åˆ‡ã‚Šæ›¿ãˆå¯èƒ½
 				if (VRAM_bank_no__cgb == 0) {
 					read_value = gbx_ram.RAM[read_address];
 				}
@@ -1061,113 +1074,113 @@ private:
 
 				return read_value;
 			}
-			else if (0xD000 <= read_address && read_address < 0xE000) {//WRAM(Bank01~NN) - GBC‚Å‚Íƒoƒ“ƒNØ‚è‘Ö‚¦‰Â”\(ƒoƒ“ƒN”‚ÍƒJ[ƒgƒŠƒbƒW‚ÉˆË‘¶)
+			else if (0xD000 <= read_address && read_address < 0xE000) {//WRAM(Bank01~NN) - GBCã§ã¯ãƒãƒ³ã‚¯åˆ‡ã‚Šæ›¿ãˆå¯èƒ½(ãƒãƒ³ã‚¯æ•°ã¯ã‚«ãƒ¼ãƒˆãƒªãƒƒã‚¸ã«ä¾å­˜)
 				uint16_t relative_addr = read_address - 0xD000;
 				read_value = WRAM_bank1_7_data_ptr__cgb[0x1000 * (WRAM_bank_no__cgb - 1) + relative_addr];
 
 				return read_value;
 			}
-			else if (read_address == 0xFF4F) {//VRAMƒoƒ“ƒN
+			else if (read_address == 0xFF4F) {//VRAMãƒãƒ³ã‚¯
 				read_value = ((VRAM_bank_no__cgb & 0b00000001) | 0b11111110);
 
 				//M_debug_printf("read_RAM_8bit()  VRAM_bank_no__cgb = %d\n", read_value);
 
 				return read_value;
 			}
-			else if (read_address == 0xFF70) {//WRAMƒoƒ“ƒN
+			else if (read_address == 0xFF70) {//WRAMãƒãƒ³ã‚¯
 				read_value = (WRAM_bank_no__cgb & 0b00000111);
 
 				//M_debug_printf("read_RAM_8bit()  WRAM_bank_no__cgb = %d\n", read_value);
 
 				return read_value;
 			}
-			else if (read_address == 0xFF68) {//BGƒpƒŒƒbƒgƒCƒ“ƒfƒbƒNƒX
+			else if (read_address == 0xFF68) {//BGãƒ‘ãƒ¬ãƒƒãƒˆã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
 				read_value = (cgb_color_list_bg_window_index | ((cgb_color_list_bg_window_auto_inc_flag == true) ? 0b10000000 : 0b00000000));
 				//read_value = cgb_color_list_bg_window_index;
 
 				return read_value;
 			}
-			else if (read_address == 0xFF69) {//BGƒpƒŒƒbƒgƒf[ƒ^
+			else if (read_address == 0xFF69) {//BGãƒ‘ãƒ¬ãƒƒãƒˆãƒ‡ãƒ¼ã‚¿
 				read_value = cgb_color_list_bg_window[cgb_color_list_bg_window_index];
 
 				return read_value;
 			}
-			else if (read_address == 0xFF6A) {//OBJƒpƒŒƒbƒgƒCƒ“ƒfƒbƒNƒX
+			else if (read_address == 0xFF6A) {//OBJãƒ‘ãƒ¬ãƒƒãƒˆã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
 				read_value = (cgb_color_list_sprite_index | ((cgb_color_list_sprite_auto_inc_flag == true) ? 0b10000000 : 0b00000000));
 				//read_value = cgb_color_list_sprite_index;
 
 				return read_value;
 			}
-			else if (read_address == 0xFF6B) {//OBJƒpƒŒƒbƒgƒf[ƒ^
+			else if (read_address == 0xFF6B) {//OBJãƒ‘ãƒ¬ãƒƒãƒˆãƒ‡ãƒ¼ã‚¿
 				read_value = cgb_color_list_sprite[cgb_color_list_sprite_index];
 
 				return read_value;
 			}
-			else if (read_address == 0xFF55) {//HDMA§ŒäƒŒƒWƒXƒ^ (R/W)
-				if (HBlank_DMA_Flag == false) {//ƒAƒNƒeƒBƒu‚Å‚È‚¢‚Æ‚«
-					if (HBlank_DMA_Remain_Size != 0x0000) {//HBLANK_DMA‚ğ’†’f‚µ‚½ê‡
+			else if (read_address == 0xFF55) {//HDMAåˆ¶å¾¡ãƒ¬ã‚¸ã‚¹ã‚¿ (R/W)
+				if (HBlank_DMA_Flag == false) {//ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã§ãªã„ã¨ã
+					if (HBlank_DMA_Remain_Size != 0x0000) {//HBLANK_DMAã‚’ä¸­æ–­ã—ãŸå ´åˆ
 						read_value = ((HBlank_DMA_Remain_Size / 0x10) - 1);
-						read_value |= 0b10000000;//bit7‚Í1‚Æ‚·‚é
+						read_value |= 0b10000000;//bit7ã¯1ã¨ã™ã‚‹
 					}
 					else {
 						read_value = 0xFF;
 					}
 				}
-				else {//ƒAƒNƒeƒBƒu‚È‚Æ‚«
+				else {//ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ãªã¨ã
 					read_value = (((HBlank_DMA_Remain_Size / 0x10) - 1) & 0b01111111);
 				}
 
 				return read_value;
 			}
-			else if (read_address == 0xFF4D) {//‘¬“xØ‚è‘Ö‚¦ƒŒƒWƒXƒ^
+			else if (read_address == 0xFF4D) {//é€Ÿåº¦åˆ‡ã‚Šæ›¿ãˆãƒ¬ã‚¸ã‚¹ã‚¿
 				read_value = 0;
 
 				if (CURRENT_CPU_Clock_2x_Flag__CGB == true) {
 					read_value |= 0b10000000;
 				}
 
-				read_value != 0b00000001;//í‚É‘¬“xØ‚è‘Ö‚¦‚Ì€”õ‚ª‚Å‚«‚Ä‚¢‚é‚±‚Æ‚É‚·‚é
+				read_value != 0b00000001;//å¸¸ã«é€Ÿåº¦åˆ‡ã‚Šæ›¿ãˆã®æº–å‚™ãŒã§ãã¦ã„ã‚‹ã“ã¨ã«ã™ã‚‹
 
 				return read_value;
 			}
 		}
 
-		if (read_address <= 0x3FFF) {//ROMƒoƒ“ƒN00
+		if (read_address <= 0x3FFF) {//ROMãƒãƒ³ã‚¯00
 			read_value = gbx_ram.RAM[read_address];
 		}
-		else if (read_address <= 0x7FFF) {//ROMƒoƒ“ƒN01-7F
+		else if (read_address <= 0x7FFF) {//ROMãƒãƒ³ã‚¯01-7F
 			//read_value = gbx_ram.RAM[read_address];
 	
 			uint8_t* read_ROM_address = get_read_ROM_address();
 			read_value = read_ROM_address[read_address - 0x4000];
 		}
-		else if (0xA000 <= read_address && read_address <= 0xBFFF) {//RAMƒoƒ“ƒN00-03i‘¶İ‚·‚éê‡j
-			if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2‚Ì‚Æ‚«
+		else if (0xA000 <= read_address && read_address <= 0xBFFF) {//RAMãƒãƒ³ã‚¯00-03ï¼ˆå­˜åœ¨ã™ã‚‹å ´åˆï¼‰
+			if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2ã®ã¨ã
 				read_value = *(getMBC2_RAM_address(read_address));
 			}
-			else if (cart_mbc_type == CART_MBC_TYPE::MBC3 && bank_mode == BankMode::RTC) {//MBC3‚ÅRTC“Ç‚İæ‚è‚Ì‚Æ‚«
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC3 && bank_mode == BankMode::RTC) {//MBC3ã§RTCèª­ã¿å–ã‚Šã®ã¨ã
 				/*
 				TODO
-				RTCƒŒƒWƒXƒ^‚Ì“Ç‚İæ‚è‚ğÀ‘•‚·‚é
+				RTCãƒ¬ã‚¸ã‚¹ã‚¿ã®èª­ã¿å–ã‚Šã‚’å®Ÿè£…ã™ã‚‹
 				*/
 				read_value = 0x00;
 			}
-			else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROM‚Ìƒ^ƒCƒv‚ªHuC1‚©‚ÂIRƒ‚[ƒh‚Ì‚Æ‚«) {
+			else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROMã®ã‚¿ã‚¤ãƒ—ãŒHuC1ã‹ã¤IRãƒ¢ãƒ¼ãƒ‰ã®ã¨ã) {
 				/*
 				TODO
-				IR‚Ì“Ç‚İæ‚è‚ğÀ‘•‚·‚é
+				IRã®èª­ã¿å–ã‚Šã‚’å®Ÿè£…ã™ã‚‹
 				*/
 	
-				//0xC1iÔŠOü‚ğóM‚µ‚½j‚Ü‚½‚Í0xC0ióM‚µ‚È‚©‚Á‚½j
-				read_value = 0xC0;//óM‚µ‚È‚©‚Á‚½‚±‚Æ‚É‚µ‚Ä‚¨‚­
+				//0xC1ï¼ˆèµ¤å¤–ç·šã‚’å—ä¿¡ã—ãŸï¼‰ã¾ãŸã¯0xC0ï¼ˆå—ä¿¡ã—ãªã‹ã£ãŸï¼‰
+				read_value = 0xC0;//å—ä¿¡ã—ãªã‹ã£ãŸã“ã¨ã«ã—ã¦ãŠã
 			}
 			else {
 				uint8_t* read_SRAM_address = get_read_SRAM_address();
 				read_value = read_SRAM_address[read_address - 0xA000];
 			}
 		}
-		else if (read_address == 0xFF00) {//ƒWƒ‡ƒCƒpƒbƒh
-			if ((gbx_ram.RAM[0xFF00] & 0b00010000) == 0) {//•ûŒüƒL[
+		else if (read_address == 0xFF00) {//ã‚¸ãƒ§ã‚¤ãƒ‘ãƒƒãƒ‰
+			if ((gbx_ram.RAM[0xFF00] & 0b00010000) == 0) {//æ–¹å‘ã‚­ãƒ¼
 	
 				uint8_t b_down = (key->get_input_state__GBX__(INPUT_MY_ID_DOWN) != 0) ? 1 : 0;
 				uint8_t b_up = (key->get_input_state__GBX__(INPUT_MY_ID_UP) != 0) ? 1 : 0;
@@ -1177,7 +1190,7 @@ private:
 				read_value = (gbx_ram.RAM[0xFF00] & 0b00110000);
 				read_value |= ((~((b_down << 3) | (b_up << 2) | (b_left << 1) | b_right)) & 0b00001111);
 			}
-			else if ((gbx_ram.RAM[0xFF00] & 0b00100000) == 0) {//ƒAƒNƒVƒ‡ƒ“ƒL[
+			else if ((gbx_ram.RAM[0xFF00] & 0b00100000) == 0) {//ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚­ãƒ¼
 				uint8_t b_start = (key->get_input_state__GBX__(INPUT_MY_ID_START) != 0) ? 1 : 0;
 				uint8_t b_select = (key->get_input_state__GBX__(INPUT_MY_ID_SELECT) != 0) ? 1 : 0;
 				uint8_t b_b = (key->get_input_state__GBX__(INPUT_MY_ID_B) != 0) ? 1 : 0;
@@ -1191,48 +1204,101 @@ private:
 				read_value |= 0b00001111;
 			}
 		}
-		else if (//ƒTƒEƒ“ƒh(–¢À‘•)
-			read_address == 0xFF10 ||
-			read_address == 0xFF11 ||
-			read_address == 0xFF12 ||
-			read_address == 0xFF13 ||
-			read_address == 0xFF14 ||
-
-			read_address == 0xFF16 ||
-			read_address == 0xFF17 ||
-			read_address == 0xFF18 ||
-			read_address == 0xFF19 ||
-
-			read_address == 0xFF1A ||
-			read_address == 0xFF1B ||
-			read_address == 0xFF1C ||
-			read_address == 0xFF1D ||
-			read_address == 0xFF1E ||
-			(0xFF30 <= read_address && read_address <= 0xFF3F) ||
-			
-			read_address == 0xFF20 ||
-			read_address == 0xFF21 ||
-			read_address == 0xFF22 ||
-			read_address == 0xFF23)
-		{
+		//=================================================================================
+		else if (read_address == 0xFF10) {
+			read_value = apu->get_channel_1()->CH1__0xFF10;
+		}
+		else if (read_address == 0xFF11) {
+			read_value = apu->get_channel_1()->CH1__0xFF11;
+		}
+		else if (read_address == 0xFF12) {
+			read_value = apu->get_channel_1()->CH1__0xFF12;
+		}
+		else if (read_address == 0xFF13) {
+			read_value = apu->get_channel_1()->CH1__0xFF13;
+		}
+		else if (read_address == 0xFF14) {
+			read_value = apu->get_channel_1()->CH1__0xFF14;
+		}
+		//=================================================================================
+		else if (read_address == 0xFF16) {
+			read_value = apu->get_channel_2()->CH2__0xFF16;
+		}
+		else if (read_address == 0xFF17) {
+			read_value = apu->get_channel_2()->CH2__0xFF17;
+		}
+		else if (read_address == 0xFF18) {
+			read_value = apu->get_channel_2()->CH2__0xFF18;
+		}
+		else if (read_address == 0xFF19) {
+			read_value = apu->get_channel_2()->CH2__0xFF19;
+		}
+		//=================================================================================
+		else if (read_address == 0xFF1A) {
+			read_value = apu->get_channel_3()->CH3__0xFF1A;
+		}
+		else if (read_address == 0xFF1B) {
+			read_value = apu->get_channel_3()->CH3__0xFF1B;
+		}
+		else if (read_address == 0xFF1C) {
+			read_value = apu->get_channel_3()->CH3__0xFF1C;
+		}
+		else if (read_address == 0xFF1D) {
+			read_value = apu->get_channel_3()->CH3__0xFF1D;
+		}
+		else if (read_address == 0xFF1E) {
+			read_value = apu->get_channel_3()->CH3__0xFF1E;
+		}
+		else if (0xFF30 <= read_address && read_address <= 0xFF3F) {
+			read_value = apu->get_channel_3()->CH3__0xFF30_0xFF3F[read_address - 0xFF30];
+		}
+		//=================================================================================
+		else if (read_address == 0xFF20) {
+			read_value = apu->get_channel_4()->CH4__0xFF20;
+		}
+		else if (read_address == 0xFF21) {
+			read_value = apu->get_channel_4()->CH4__0xFF21;
+		}
+		else if (read_address == 0xFF22) {
+			read_value = apu->get_channel_4()->CH4__0xFF22;
+		}
+		else if (read_address == 0xFF23) {
+			read_value = apu->get_channel_4()->CH4__0xFF23;
+		}
+		//=================================================================================
+		else if (read_address == 0xFF24) {//ã‚µã‚¦ãƒ³ãƒ‰(æœªå®Ÿè£…)
 			read_value = gbx_ram.RAM[read_address];
 		}
-		else if (read_address == 0xFF24) {//ƒTƒEƒ“ƒh(–¢À‘•)
+		else if (read_address == 0xFF25) {//ã‚µã‚¦ãƒ³ãƒ‰(æœªå®Ÿè£…)
+			read_value = gbx_ram.RAM[read_address];
+		}
+		else if (read_address == 0xFF26) {//ã‚µã‚¦ãƒ³ãƒ‰
+			read_value = 0x00;
+			if (apu->all_channel_enable_flag == true) {
+				read_value |= 0b10000000;
+
+				if (apu->get_channel_1()->is_playing() == true) {
+					read_value |= 0b00000001;
+				}
+				if (apu->get_channel_2()->is_playing() == true) {
+					read_value |= 0b00000010;
+				}
+				if (apu->get_channel_3()->is_playing() == true) {
+					read_value |= 0b00000100;
+				}
+				if (apu->get_channel_4()->is_playing() == true) {
+					read_value |= 0b00001000;
+				}
+			}
+		}
+		//=================================================================================
+		else if (read_address == 0xFF01) {//é€šä¿¡ãƒ‡ãƒ¼ã‚¿ãƒ¬ã‚¸ã‚¹ã‚¿ (R/W)
 			read_value = 0x00;
 		}
-		else if (read_address == 0xFF25) {//ƒTƒEƒ“ƒh(–¢À‘•)
+		else if (read_address == 0xFF02) {//é€šä¿¡åˆ¶å¾¡ãƒ¬ã‚¸ã‚¹ã‚¿ (R/W)
 			read_value = 0x00;
 		}
-		else if (read_address == 0xFF26) {//ƒTƒEƒ“ƒh(–¢À‘•)
-			read_value = 0x00;
-		}
-		else if (read_address == 0xFF01) {//’ÊMƒf[ƒ^ƒŒƒWƒXƒ^ (R/W)
-			read_value = 0x00;
-		}
-		else if (read_address == 0xFF02) {//’ÊM§ŒäƒŒƒWƒXƒ^ (R/W)
-			read_value = 0x00;
-		}
-		else {//’Êí“Ç‚İæ‚è
+		else {//é€šå¸¸èª­ã¿å–ã‚Š
 			read_value = gbx_ram.RAM[read_address];
 		}
 	
@@ -1246,16 +1312,16 @@ private:
 	}
 
 	void write_RAM_8bit(uint16_t write_address, uint8_t value) {
-		if (booting_flag == true) {//ƒu[ƒgƒƒ€’†‚Ì‚Æ‚«
-			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//ƒJƒ‰[‚Å‚È‚¢‚Æ‚«
-				if (write_address < 0x100) {//ƒu[ƒgƒƒ€’†‚©‚Âƒu[ƒgƒƒ€“à‚Ì‚Æ‚«
+		if (booting_flag == true) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ä¸­ã®ã¨ã
+			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//ã‚«ãƒ©ãƒ¼ã§ãªã„ã¨ã
+				if (write_address < 0x100) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ä¸­ã‹ã¤ãƒ–ãƒ¼ãƒˆãƒ­ãƒ å†…ã®ã¨ã
 					bootrom_256byte[write_address] = value;
 
 					return;
 				}
 			}
-			else {//ƒJƒ‰[‚Ì‚Æ‚«
-				if (write_address < 0x100 || (0x200 <= write_address && write_address < 0x900)) {//ƒu[ƒgƒƒ€’†‚©‚Âƒu[ƒgƒƒ€“à‚Ì‚Æ‚«
+			else {//ã‚«ãƒ©ãƒ¼ã®ã¨ã
+				if (write_address < 0x100 || (0x200 <= write_address && write_address < 0x900)) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ ä¸­ã‹ã¤ãƒ–ãƒ¼ãƒˆãƒ­ãƒ å†…ã®ã¨ã
 					bootrom_2048byte__cgb[write_address] = value;
 
 					return;
@@ -1264,7 +1330,7 @@ private:
 		}
 
 		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
-			if (0x8000 <= write_address && write_address < 0xA000) {//VRAM - GBC‚Å‚Íƒoƒ“ƒN0/1‚ÅØ‚è‘Ö‚¦‰Â”\
+			if (0x8000 <= write_address && write_address < 0xA000) {//VRAM - GBCã§ã¯ãƒãƒ³ã‚¯0/1ã§åˆ‡ã‚Šæ›¿ãˆå¯èƒ½
 				if (VRAM_bank_no__cgb == 0) {
 					gbx_ram.RAM[write_address] = value;
 				}
@@ -1276,20 +1342,20 @@ private:
 
 				return;
 			}
-			else if (0xD000 <= write_address && write_address < 0xE000) {//WRAM(Bank01~NN) - GBC‚Å‚Íƒoƒ“ƒNØ‚è‘Ö‚¦‰Â”\(ƒoƒ“ƒN”‚ÍƒJ[ƒgƒŠƒbƒW‚ÉˆË‘¶)
+			else if (0xD000 <= write_address && write_address < 0xE000) {//WRAM(Bank01~NN) - GBCã§ã¯ãƒãƒ³ã‚¯åˆ‡ã‚Šæ›¿ãˆå¯èƒ½(ãƒãƒ³ã‚¯æ•°ã¯ã‚«ãƒ¼ãƒˆãƒªãƒƒã‚¸ã«ä¾å­˜)
 				uint16_t relative_addr = write_address - 0xD000;
 				WRAM_bank1_7_data_ptr__cgb[0x1000 * (WRAM_bank_no__cgb - 1) + relative_addr] = value;
 
 				return;
 			}
-			else if (write_address == 0xFF4F) {//VRAMƒoƒ“ƒN
+			else if (write_address == 0xFF4F) {//VRAMãƒãƒ³ã‚¯
 				VRAM_bank_no__cgb = (value & 0b00000001);
 
 				//M_debug_printf("write_RAM_8bit()  VRAM_bank_no__cgb = %d\n", VRAM_bank_no__cgb);
 
 				return;
 			}
-			else if (write_address == 0xFF70) {//WRAMƒoƒ“ƒN
+			else if (write_address == 0xFF70) {//WRAMãƒãƒ³ã‚¯
 				WRAM_bank_no__cgb = (value & 0b00000111);
 				if (WRAM_bank_no__cgb == 0) {
 					WRAM_bank_no__cgb = 1;
@@ -1299,7 +1365,7 @@ private:
 
 				return;
 			}
-			else if (write_address == 0xFF68) {//BGƒpƒŒƒbƒgƒCƒ“ƒfƒbƒNƒX
+			else if (write_address == 0xFF68) {//BGãƒ‘ãƒ¬ãƒƒãƒˆã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
 				cgb_color_list_bg_window_index = (value & 0b00111111);
 
 				if ((value & 0b10000000) != 0) {
@@ -1311,7 +1377,7 @@ private:
 
 				return;
 			}
-			else if (write_address == 0xFF69) {//BGƒpƒŒƒbƒgƒf[ƒ^
+			else if (write_address == 0xFF69) {//BGãƒ‘ãƒ¬ãƒƒãƒˆãƒ‡ãƒ¼ã‚¿
 				cgb_color_list_bg_window[cgb_color_list_bg_window_index] = value;
 
 				if (cgb_color_list_bg_window_auto_inc_flag == true) {
@@ -1324,7 +1390,7 @@ private:
 
 				return;
 			}
-			else if (write_address == 0xFF6A) {//OBJƒpƒŒƒbƒgƒCƒ“ƒfƒbƒNƒX
+			else if (write_address == 0xFF6A) {//OBJãƒ‘ãƒ¬ãƒƒãƒˆã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
 				cgb_color_list_sprite_index = (value & 0b00111111);
 
 				if ((value & 0b10000000) != 0) {
@@ -1336,7 +1402,7 @@ private:
 
 				return;
 			}
-			else if (write_address == 0xFF6B) {//OBJƒpƒŒƒbƒgƒf[ƒ^
+			else if (write_address == 0xFF6B) {//OBJãƒ‘ãƒ¬ãƒƒãƒˆãƒ‡ãƒ¼ã‚¿
 				cgb_color_list_sprite[cgb_color_list_sprite_index] = value;
 
 				if (cgb_color_list_sprite_auto_inc_flag == true) {
@@ -1349,31 +1415,31 @@ private:
 
 				return;
 			}
-			else if (write_address == 0xFF51) {//HDMAƒ\[ƒXƒŒƒWƒXƒ^ãˆÊ8bit (W)
+			else if (write_address == 0xFF51) {//HDMAã‚½ãƒ¼ã‚¹ãƒ¬ã‚¸ã‚¹ã‚¿ä¸Šä½8bit (W)
 				HDMA_src_addr = (value << 8) | (HDMA_src_addr & 0b11111111);
 
 				return;
 			}
-			else if (write_address == 0xFF52) {//HDMAƒ\[ƒXƒŒƒWƒXƒ^‰ºˆÊ8bit (W)
+			else if (write_address == 0xFF52) {//HDMAã‚½ãƒ¼ã‚¹ãƒ¬ã‚¸ã‚¹ã‚¿ä¸‹ä½8bit (W)
 				HDMA_src_addr = (HDMA_src_addr & 0b1111111100000000) | (value & 0b11110000);
 
 				return;
 			}
-			else if (write_address == 0xFF53) {//HDMAƒ^[ƒQƒbƒgƒŒƒWƒXƒ^ãˆÊ8bit (W)
+			else if (write_address == 0xFF53) {//HDMAã‚¿ãƒ¼ã‚²ãƒƒãƒˆãƒ¬ã‚¸ã‚¹ã‚¿ä¸Šä½8bit (W)
 				HDMA_dst_addr = ((value & 0b00011111) << 8) | (HDMA_dst_addr & 0b11111111);
 				HDMA_dst_addr |= 0b1000000000000000;
 
 				return;
 			}
-			else if (write_address == 0xFF54) {//HDMAƒ^[ƒQƒbƒgƒŒƒWƒXƒ^‰ºˆÊ8bit (W)
+			else if (write_address == 0xFF54) {//HDMAã‚¿ãƒ¼ã‚²ãƒƒãƒˆãƒ¬ã‚¸ã‚¹ã‚¿ä¸‹ä½8bit (W)
 				HDMA_dst_addr = (HDMA_dst_addr & 0b1111111100000000) | (value & 0b11110000);
 
 				return;
 			}
-			else if (write_address == 0xFF55) {//HDMA§ŒäƒŒƒWƒXƒ^ (R/W)
+			else if (write_address == 0xFF55) {//HDMAåˆ¶å¾¡ãƒ¬ã‚¸ã‚¹ã‚¿ (R/W)
 				uint16_t transfer_size = ((value & 0b01111111) + 1) * 0x10;
 
-				if ((value & 0b10000000) == 0) {//(”Ä—pDMA, GDMA)
+				if ((value & 0b10000000) == 0) {//(æ±ç”¨DMA, GDMA)
 					HBlank_DMA_Flag = false;
 
 					//memcpy(&(gbx_ram.RAM[HDMA_dst_addr]), &(gbx_ram.RAM[HDMA_src_addr]), transfer_size);
@@ -1391,8 +1457,8 @@ private:
 
 				return;
 			}
-			else if (write_address == 0xFF4D) {//‘¬“xØ‚è‘Ö‚¦ƒŒƒWƒXƒ^
-				//STOP–½—ß‚Å•ÏX‚·‚éCPU‚Ìƒ‚[ƒh‚ğƒZƒbƒg‚·‚é
+			else if (write_address == 0xFF4D) {//é€Ÿåº¦åˆ‡ã‚Šæ›¿ãˆãƒ¬ã‚¸ã‚¹ã‚¿
+				//STOPå‘½ä»¤ã§å¤‰æ›´ã™ã‚‹CPUã®ãƒ¢ãƒ¼ãƒ‰ã‚’ã‚»ãƒƒãƒˆã™ã‚‹
 				if ((value & 0b00000001) != 0) {
 					SET_CPU_Clock_2x_Flag__CGB = true;
 				}
@@ -1405,7 +1471,7 @@ private:
 
 		}
 
-		if (write_address <= 0x1FFF) {//RAM‚Ì—LŒø‰»
+		if (write_address <= 0x1FFF) {//RAMã®æœ‰åŠ¹åŒ–
 			if (cart_mbc_type == CART_MBC_TYPE::ROM ||
 				cart_mbc_type == CART_MBC_TYPE::OTHER ||
 				cart_mbc_type == CART_MBC_TYPE::MBC1 ||
@@ -1420,7 +1486,7 @@ private:
 				}
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
-				if ((write_address & 0b0000000100000000) == 0) {//ãˆÊƒAƒhƒŒƒXƒoƒCƒg‚ÌÅ‰ºˆÊƒrƒbƒg‚ª0‚Ì‚Æ‚«
+				if ((write_address & 0b0000000100000000) == 0) {//ä¸Šä½ã‚¢ãƒ‰ãƒ¬ã‚¹ãƒã‚¤ãƒˆã®æœ€ä¸‹ä½ãƒ“ãƒƒãƒˆãŒ0ã®ã¨ã
 					if (value == 0x0A) {
 						SRAM_Enable_Flag = true;
 
@@ -1432,7 +1498,7 @@ private:
 						//M_debug_printf("Disable SRAM\n");
 					}
 				}
-				else {//‚»‚êˆÈŠO‚Ì‚Æ‚«
+				else {//ãã‚Œä»¥å¤–ã®ã¨ã
 					rom_bank_no__low = (value & 0b00001111);
 					if (rom_bank_no__low == 0) {
 						rom_bank_no__low = 1;
@@ -1458,7 +1524,7 @@ private:
 				}
 			}
 		}
-		else if (write_address <= 0x3FFF) {//ROMƒoƒ“ƒN”Ô†
+		else if (write_address <= 0x3FFF) {//ROMãƒãƒ³ã‚¯ç•ªå·
 			//M_debug_printf("write_address <= 0x3FFF [value = 0x%02x]\n", value);
 			//system("pause");
 	
@@ -1472,7 +1538,7 @@ private:
 				}
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
-				if ((write_address & 0b0000000100000000) == 0) {//ãˆÊƒAƒhƒŒƒXƒoƒCƒg‚ÌÅ‰ºˆÊƒrƒbƒg‚ª0‚Ì‚Æ‚«
+				if ((write_address & 0b0000000100000000) == 0) {//ä¸Šä½ã‚¢ãƒ‰ãƒ¬ã‚¹ãƒã‚¤ãƒˆã®æœ€ä¸‹ä½ãƒ“ãƒƒãƒˆãŒ0ã®ã¨ã
 					if (value == 0x0A) {
 						SRAM_Enable_Flag = true;
 
@@ -1484,7 +1550,7 @@ private:
 						//M_debug_printf("Disable SRAM\n");
 					}
 				}
-				else {//‚»‚êˆÈŠO‚Ì‚Æ‚«
+				else {//ãã‚Œä»¥å¤–ã®ã¨ã
 					rom_bank_no__low = (value & 0b00001111);
 					if (rom_bank_no__low == 0) {
 						rom_bank_no__low = 1;
@@ -1509,7 +1575,7 @@ private:
 				rom_bank_no__low = value;
 			}
 		}
-		else if (write_address <= 0x5FFF) {//RAMƒoƒ“ƒN”Ô†-‚Ü‚½‚Í-ROMƒoƒ“ƒN”Ô†‚ÌãˆÊƒrƒbƒg
+		else if (write_address <= 0x5FFF) {//RAMãƒãƒ³ã‚¯ç•ªå·-ã¾ãŸã¯-ROMãƒãƒ³ã‚¯ç•ªå·ã®ä¸Šä½ãƒ“ãƒƒãƒˆ
 			//M_debug_printf("write_address <= 0x5FFF [value = 0x%02x]\n", value);
 			//system("pause");
 	
@@ -1526,7 +1592,7 @@ private:
 				}
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
-				//‰½‚à‚µ‚È‚¢
+				//ä½•ã‚‚ã—ãªã„
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
 				if (0x00 <= value && value <= 0x03) {
@@ -1562,7 +1628,7 @@ private:
 				sram_bank_no = value;
 			}
 		}
-		else if (write_address <= 0x7FFF) {//ROM / RAMƒ‚[ƒh‘I‘ğ
+		else if (write_address <= 0x7FFF) {//ROM / RAMãƒ¢ãƒ¼ãƒ‰é¸æŠ
 			//M_debug_printf("write_address <= 0x7FFF [value = 0x%02x]\n", value);
 			//system("pause");
 	
@@ -1578,34 +1644,34 @@ private:
 				}
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
-				//‰½‚à‚µ‚È‚¢
+				//ä½•ã‚‚ã—ãªã„
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
 				/*
 				TODO
-				Œ»İ‚Ì‚Ì•Û‘¶‚ğÀ‘•‚·‚é
+				ç¾åœ¨ã®æ™‚åˆ»ã®ä¿å­˜ã‚’å®Ÿè£…ã™ã‚‹
 				*/
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC5) {
-				//‰½‚à‚µ‚È‚¢
+				//ä½•ã‚‚ã—ãªã„
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::HuC1) {
-				//‰½‚à‚µ‚È‚¢
+				//ä½•ã‚‚ã—ãªã„
 			}
 		}
-		else if (0xA000 <= write_address && write_address <= 0xBFFF) {//RAMƒoƒ“ƒN00-03i‘¶İ‚·‚éê‡j
+		else if (0xA000 <= write_address && write_address <= 0xBFFF) {//RAMãƒãƒ³ã‚¯00-03ï¼ˆå­˜åœ¨ã™ã‚‹å ´åˆï¼‰
 			//gbx_ram.RAM[write_address] = value;
 
-			if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2‚Ì‚Æ‚«
+			if (cart_mbc_type == CART_MBC_TYPE::MBC2) {//MBC2ã®ã¨ã
 				*(getMBC2_RAM_address(write_address)) = value;
 			}
-			else if (cart_mbc_type == CART_MBC_TYPE::MBC3 && bank_mode == BankMode::RTC) {//ROM‚Ìƒ^ƒCƒv‚ªMBC3‚©‚ÂRTCƒ‚[ƒh‚Ì‚Æ‚«
+			else if (cart_mbc_type == CART_MBC_TYPE::MBC3 && bank_mode == BankMode::RTC) {//ROMã®ã‚¿ã‚¤ãƒ—ãŒMBC3ã‹ã¤RTCãƒ¢ãƒ¼ãƒ‰ã®ã¨ã
 				/*
 				TODO
-				RTCƒŒƒWƒXƒ^‚Ö‚Ì‘‚«‚İ‚ğÀ‘•‚·‚é
+				RTCãƒ¬ã‚¸ã‚¹ã‚¿ã¸ã®æ›¸ãè¾¼ã¿ã‚’å®Ÿè£…ã™ã‚‹
 				*/
 			}
-			else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROM‚Ìƒ^ƒCƒv‚ªHuC1‚©‚ÂIRƒ‚[ƒh‚Ì‚Æ‚«
+			else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROMã®ã‚¿ã‚¤ãƒ—ãŒHuC1ã‹ã¤IRãƒ¢ãƒ¼ãƒ‰ã®ã¨ã
 				if (value == 0x00) {
 					IR_Enable_Flag = false;
 				}
@@ -1618,7 +1684,7 @@ private:
 				read_SRAM_address[write_address - 0xA000] = value;
 			}
 		}
-		else if (write_address == 0xFF00) {//ƒWƒ‡ƒCƒpƒbƒh
+		else if (write_address == 0xFF00) {//ã‚¸ãƒ§ã‚¤ãƒ‘ãƒƒãƒ‰
 			gbx_ram.RAM[0xFF00] = (value & 0b00110000);
 		}
 		else if (write_address == 0xFF04) {
@@ -1628,50 +1694,87 @@ private:
 			uint16_t src_address = value << 8;
 			memcpy((void*)(&(gbx_ram.RAM[0xFE00])), (void*)(&(gbx_ram.RAM[src_address])), 40 * 4);
 	
-			//ƒTƒCƒNƒ‹”‚Í‚·‚·‚ß‚È‚¢ //cpu_machine_cycle += 160;//160 M-cycle ‚©‚©‚é
+			//ã‚µã‚¤ã‚¯ãƒ«æ•°ã¯ã™ã™ã‚ãªã„ //cpu_machine_cycle += 160;//160 M-cycle ã‹ã‹ã‚‹
 		}
-		else if (//ƒTƒEƒ“ƒh(–¢À‘•)
-			write_address == 0xFF10 ||
-			write_address == 0xFF11 ||
-			write_address == 0xFF12 ||
-			write_address == 0xFF13 ||
-			write_address == 0xFF14 ||
-
-			write_address == 0xFF16 ||
-			write_address == 0xFF17 ||
-			write_address == 0xFF18 ||
-			write_address == 0xFF19 ||
-
-			write_address == 0xFF1A ||
-			write_address == 0xFF1B ||
-			write_address == 0xFF1C ||
-			write_address == 0xFF1D ||
-			write_address == 0xFF1E ||
-			(0xFF30 <= write_address && write_address <= 0xFF3F) ||
-
-			write_address == 0xFF20 ||
-			write_address == 0xFF21 ||
-			write_address == 0xFF22 ||
-			write_address == 0xFF23)
-		{
+		//=================================================================================
+		else if (write_address == 0xFF10) {
+			apu->get_channel_1()->CH1__0xFF10 = value;
+		}
+		else if (write_address == 0xFF11) {
+			apu->get_channel_1()->CH1__0xFF11 = value;
+		}
+		else if (write_address == 0xFF12) {
+			apu->get_channel_1()->CH1__0xFF12 = value;
+		}
+		else if (write_address == 0xFF13) {
+			apu->get_channel_1()->CH1__0xFF13 = value;
+		}
+		else if (write_address == 0xFF14) {
+			apu->get_channel_1()->CH1__0xFF14 = value;
+		}
+		//=================================================================================
+		else if (write_address == 0xFF16) {
+			apu->get_channel_2()->CH2__0xFF16 = value;
+		}
+		else if (write_address == 0xFF17) {
+			apu->get_channel_2()->CH2__0xFF17 = value;
+		}
+		else if (write_address == 0xFF18) {
+			apu->get_channel_2()->CH2__0xFF18 = value;
+		}
+		else if (write_address == 0xFF19) {
+			apu->get_channel_2()->CH2__0xFF19 = value;
+		}
+		//=================================================================================
+		else if (write_address == 0xFF1A) {
+			apu->get_channel_3()->CH3__0xFF1A = value;
+		}
+		else if (write_address == 0xFF1B) {
+			apu->get_channel_3()->CH3__0xFF1B = value;
+		}
+		else if (write_address == 0xFF1C) {
+			apu->get_channel_3()->CH3__0xFF1C = value;
+		}
+		else if (write_address == 0xFF1D) {
+			apu->get_channel_3()->CH3__0xFF1D = value;
+		}
+		else if (write_address == 0xFF1E) {
+			apu->get_channel_3()->CH3__0xFF1E = value;
+		}
+		else if (0xFF30 <= write_address && write_address <= 0xFF3F) {
+			apu->get_channel_3()->CH3__0xFF30_0xFF3F[write_address - 0xFF30] = value;
+		}
+		//=================================================================================
+		else if (write_address == 0xFF20) {
+			apu->get_channel_4()->CH4__0xFF20 = value;
+		}
+		else if (write_address == 0xFF21) {
+			apu->get_channel_4()->CH4__0xFF21 = value;
+		}
+		else if (write_address == 0xFF22) {
+			apu->get_channel_4()->CH4__0xFF22 = value;
+		}
+		else if (write_address == 0xFF23) {
+			apu->get_channel_4()->CH4__0xFF23 = value;
+		}
+		//=================================================================================
+		else if (write_address == 0xFF24) {//ã‚µã‚¦ãƒ³ãƒ‰(æœªå®Ÿè£…)
 			gbx_ram.RAM[write_address] = value;
 		}
-		else if (write_address == 0xFF24) {//ƒTƒEƒ“ƒh(–¢À‘•)
+		else if (write_address == 0xFF25) {//ã‚µã‚¦ãƒ³ãƒ‰(æœªå®Ÿè£…)
+			gbx_ram.RAM[write_address] = value;
+		}
+		else if (write_address == 0xFF26) {//ã‚µã‚¦ãƒ³ãƒ‰
+			apu->all_channel_enable_flag = ((value & 0b10000000) != 0) ? true : false;
+		}
+		//=================================================================================
+		else if (write_address == 0xFF01) {//é€šä¿¡ãƒ‡ãƒ¼ã‚¿ãƒ¬ã‚¸ã‚¹ã‚¿ (R/W)
 			gbx_ram.RAM[write_address] = 0x00;
 		}
-		else if (write_address == 0xFF25) {//ƒTƒEƒ“ƒh(–¢À‘•)
+		else if (write_address == 0xFF02) {//é€šä¿¡åˆ¶å¾¡ãƒ¬ã‚¸ã‚¹ã‚¿ (R/W)
 			gbx_ram.RAM[write_address] = 0x00;
 		}
-		else if (write_address == 0xFF26) {//ƒTƒEƒ“ƒh(–¢À‘•)
-			gbx_ram.RAM[write_address] = 0x00;
-		}
-		else if (write_address == 0xFF01) {//’ÊMƒf[ƒ^ƒŒƒWƒXƒ^ (R/W)
-			gbx_ram.RAM[write_address] = 0x00;
-		}
-		else if (write_address == 0xFF02) {//’ÊM§ŒäƒŒƒWƒXƒ^ (R/W)
-			gbx_ram.RAM[write_address] = 0x00;
-		}
-		else {//’Êí‘‚«‚İ
+		else {//é€šå¸¸æ›¸ãè¾¼ã¿
 			gbx_ram.RAM[write_address] = value;
 		}
 	}
@@ -1690,7 +1793,7 @@ private:
 
 	void create_savedata_file(const char* savedata_filename) {
 		bool file_exist_flag = false;
-		if (PathFileExists(savedata_filename) == TRUE) {//ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚½ê‡
+		if (PathFileExists(savedata_filename) == TRUE) {//ãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãŸå ´åˆ
 			file_exist_flag = true;
 		}
 
@@ -1698,35 +1801,35 @@ private:
 			goto create_gamedata_error;
 		}
 
-		if (file_exist_flag == false) {//ƒZ[ƒuƒf[ƒ^ƒtƒ@ƒCƒ‹‚ğV‹Kì¬‚µ‚½ê‡
-			save_gamedata();//‰Šú‚Ìó‘Ô‚ğƒZ[ƒu‚·‚é
+		if (file_exist_flag == false) {//ã‚»ãƒ¼ãƒ–ãƒ‡ãƒ¼ã‚¿ãƒ•ã‚¡ã‚¤ãƒ«ã‚’æ–°è¦ä½œæˆã—ãŸå ´åˆ
+			save_gamedata();//åˆæœŸã®çŠ¶æ…‹ã‚’ã‚»ãƒ¼ãƒ–ã™ã‚‹
 		}
 
-		fseek(savedata_fp, 0, SEEK_SET);//ƒtƒ@ƒCƒ‹‚ÌƒJ[ƒ\ƒ‹‚ğæ“ª‚É‚Á‚Ä‚­‚é
+		fseek(savedata_fp, 0, SEEK_SET);//ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚«ãƒ¼ã‚½ãƒ«ã‚’å…ˆé ­ã«æŒã£ã¦ãã‚‹
 
 		return;
 
 	create_gamedata_error:
-		MessageBox(NULL, _T("ƒZ[ƒuƒf[ƒ^ƒtƒ@ƒCƒ‹‚Ìì¬‚É¸”s‚µ‚Ü‚µ‚½"), _T("ERROR"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, _T("ã‚»ãƒ¼ãƒ–ãƒ‡ãƒ¼ã‚¿ãƒ•ã‚¡ã‚¤ãƒ«ã®ä½œæˆã«å¤±æ•—ã—ã¾ã—ãŸ"), _T("ERROR"), MB_OK | MB_ICONERROR);
 
 		FATAL_ERROR_FLAG = true;
 	}
 
 	/*
-	ƒQ[ƒ€‚Ìƒf[ƒ^‚ğƒtƒ@ƒCƒ‹‚É•Û‘¶‚·‚é
+	ã‚²ãƒ¼ãƒ ã®ãƒ‡ãƒ¼ã‚¿ã‚’ãƒ•ã‚¡ã‚¤ãƒ«ã«ä¿å­˜ã™ã‚‹
 	*/
 	void save_gamedata() {
-		if (cart_mbc_type != CART_MBC_TYPE::MBC2 && Main::SRAM_size == 0) {//MBC‚ª2‚Å‚È‚­‚È‚¨‚©‚ÂSRAM‚ÌƒTƒCƒY‚ª0‚Ì‚Æ‚«
+		if (cart_mbc_type != CART_MBC_TYPE::MBC2 && Main::SRAM_size == 0) {//MBCãŒ2ã§ãªããªãŠã‹ã¤SRAMã®ã‚µã‚¤ã‚ºãŒ0ã®ã¨ã
 			return;
 		}
 
-		//ƒtƒ@ƒCƒ‹‚ÌƒTƒCƒY‚ğ0‚É‚·‚é
+		//ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚µã‚¤ã‚ºã‚’0ã«ã™ã‚‹
 		int file_handle = _fileno(savedata_fp);
 		if (_chsize_s(file_handle, 0) != 0) {
 			goto save_gamedata_error;
 		}
 
-		fseek(savedata_fp, 0, SEEK_SET);//ƒtƒ@ƒCƒ‹‚ÌƒJ[ƒ\ƒ‹‚ğæ“ª‚É‚Á‚Ä‚­‚é
+		fseek(savedata_fp, 0, SEEK_SET);//ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚«ãƒ¼ã‚½ãƒ«ã‚’å…ˆé ­ã«æŒã£ã¦ãã‚‹
 
 		size_t tmp_write_size;
 		if (cart_mbc_type == CART_MBC_TYPE::ROM ||
@@ -1765,28 +1868,28 @@ private:
 
 			/*
 			TODO
-			RTCƒŒƒWƒXƒ^‚Ì•Û‘¶‚ğÀ‘•‚·‚é
+			RTCãƒ¬ã‚¸ã‚¹ã‚¿ã®ä¿å­˜ã‚’å®Ÿè£…ã™ã‚‹
 			*/
 		}
 		//else if (cart_mbc_type == CART_MBC_TYPE::OTHER) {
 		else {//OTHER
-			//‚±‚ÌƒGƒ~ƒ…ƒŒ[ƒ^‚Å‚Í‘Î‰‚µ‚Ä‚¢‚È‚¢‚Ì‚Å‰½‚à‚µ‚È‚¢
+			//ã“ã®ã‚¨ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚¿ã§ã¯å¯¾å¿œã—ã¦ã„ãªã„ã®ã§ä½•ã‚‚ã—ãªã„
 		}
 
 		return;
 
 	save_gamedata_error:
-		MessageBox(NULL, _T("ƒZ[ƒuƒf[ƒ^‚Ì•Û‘¶‚É¸”s‚µ‚Ü‚µ‚½"), _T("ERROR"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, _T("ã‚»ãƒ¼ãƒ–ãƒ‡ãƒ¼ã‚¿ã®ä¿å­˜ã«å¤±æ•—ã—ã¾ã—ãŸ"), _T("ERROR"), MB_OK | MB_ICONERROR);
 
 		FATAL_ERROR_FLAG = true;
 	}
 
 	void load_gamedata() {
-		if (cart_mbc_type != CART_MBC_TYPE::MBC2 && Main::SRAM_size == 0) {//MBC‚ª2‚Å‚È‚­‚È‚¨‚©‚ÂSRAM‚ÌƒTƒCƒY‚ª0‚Ì‚Æ‚«
+		if (cart_mbc_type != CART_MBC_TYPE::MBC2 && Main::SRAM_size == 0) {//MBCãŒ2ã§ãªããªãŠã‹ã¤SRAMã®ã‚µã‚¤ã‚ºãŒ0ã®ã¨ã
 			return;
 		}
 
-		fseek(savedata_fp, 0, SEEK_SET);//ƒtƒ@ƒCƒ‹‚ÌƒJ[ƒ\ƒ‹‚ğæ“ª‚É‚Á‚Ä‚­‚é
+		fseek(savedata_fp, 0, SEEK_SET);//ãƒ•ã‚¡ã‚¤ãƒ«ã®ã‚«ãƒ¼ã‚½ãƒ«ã‚’å…ˆé ­ã«æŒã£ã¦ãã‚‹
 
 		size_t tmp_read_size;
 
@@ -1826,18 +1929,18 @@ private:
 
 			/*
 			TODO
-			RTCƒŒƒWƒXƒ^‚Ì“Ç‚İ‚İ‚ğÀ‘•‚·‚é
+			RTCãƒ¬ã‚¸ã‚¹ã‚¿ã®èª­ã¿è¾¼ã¿ã‚’å®Ÿè£…ã™ã‚‹
 			*/
 		}
 		//else if (cart_mbc_type == CART_MBC_TYPE::OTHER) {
 		else {//OTHER
-			//‚±‚ÌƒGƒ~ƒ…ƒŒ[ƒ^‚Å‚Í‘Î‰‚µ‚Ä‚¢‚È‚¢‚Ì‚Å‰½‚à‚µ‚È‚¢
+			//ã“ã®ã‚¨ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚¿ã§ã¯å¯¾å¿œã—ã¦ã„ãªã„ã®ã§ä½•ã‚‚ã—ãªã„
 		}
 
 		return;
 
 	load_gamedata_error:
-		MessageBox(NULL, _T("ƒZ[ƒuƒf[ƒ^‚Ì“Ç‚İ‚İ‚É¸”s‚µ‚Ü‚µ‚½"), _T("ERROR"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, _T("ã‚»ãƒ¼ãƒ–ãƒ‡ãƒ¼ã‚¿ã®èª­ã¿è¾¼ã¿ã«å¤±æ•—ã—ã¾ã—ãŸ"), _T("ERROR"), MB_OK | MB_ICONERROR);
 
 		FATAL_ERROR_FLAG = true;
 	}
@@ -1977,7 +2080,7 @@ private:
 		}
 	}
 
-	//op1 + op2 (16bitŒvZ)
+	//op1 + op2 (16bitè¨ˆç®—)
 	void calc_H_Flag__16bit_add(uint16_t op1, uint16_t op2) {
 		if ((op1 & 0b0000111111111111) + (op2 & 0b0000111111111111) > 0b0000111111111111) {
 			gbx_register.F_H = 1;
@@ -1987,7 +2090,7 @@ private:
 		}
 	}
 
-	//op1 + op2 (16bitŒvZ)
+	//op1 + op2 (16bitè¨ˆç®—)
 	void calc_C_Flag__16bit_add(uint16_t op1, uint16_t op2) {
 		if ((uint32_t)op1 + (uint32_t)op2 > 0b1111111111111111) {
 			gbx_register.F_C = 1;
@@ -2000,10 +2103,10 @@ private:
 	//=============================================================================
 
 
-	//–¢’è‹`‚ÌCPU‚Ì–½—ß
+	//æœªå®šç¾©ã®CPUã®å‘½ä»¤
 	void cpu_fnc__GARBAGE() {
 		//M_debug_printf("ERROR cpu_fnc__GARBAGE()...\n");
-		//MessageBox(NULL, _T("–¢’è‹`‚Ì–½—ß‚ğÀs‚µ‚Ü‚µ‚½"), _T("î•ñ"), MB_ICONERROR);
+		//MessageBox(NULL, _T("æœªå®šç¾©ã®å‘½ä»¤ã‚’å®Ÿè¡Œã—ã¾ã—ãŸ"), _T("æƒ…å ±"), MB_ICONERROR);
 	}
 
 
@@ -3858,7 +3961,7 @@ private:
 		write_RAM_8bit(gbx_register.DE, gbx_register.A);
 	}
 
-	//void cpu_fnc__LD_addrHL_A()//À‘•Ï‚İ
+	//void cpu_fnc__LD_addrHL_A()//å®Ÿè£…æ¸ˆã¿
 
 	//0xEA
 	void cpu_fnc__LD_addrn16_A() {
@@ -3905,7 +4008,7 @@ private:
 		gbx_register.A = value_8bit;
 	}
 
-	//void cpu_fnc__LD_A_addrHL()//À‘•Ï‚İ
+	//void cpu_fnc__LD_A_addrHL()//å®Ÿè£…æ¸ˆã¿
 
 
 	//0xFA
@@ -4399,7 +4502,7 @@ private:
 
 	//0xF5
 	void cpu_fnc__PUSH_AF() {
-		gbx_register.F_unused = 0;//–¢g—p—Ìˆæ‚Í0‚É‚µ‚Ä‚¨‚­
+		gbx_register.F_unused = 0;//æœªä½¿ç”¨é ˜åŸŸã¯0ã«ã—ã¦ãŠã
 
 		push_16bit(gbx_register.AF);
 	}
@@ -4456,7 +4559,7 @@ private:
 			gbx_register.F_C = 0;
 		}
 
-		gbx_register.F_unused = 0;//–¢g—p—Ìˆæ‚Í0‚É‚µ‚Ä‚¨‚­
+		gbx_register.F_unused = 0;//æœªä½¿ç”¨é ˜åŸŸã¯0ã«ã—ã¦ãŠã
 	}
 
 
@@ -4546,18 +4649,18 @@ private:
 
 		if (IME_Flag == true) {
 			//if (!(((IE_value & IF_value) & 0b00011111) != 0)) {
-				gbx_register.PC--;//PC‚ğ‚·‚·‚ß‚¸‚É‚Æ‚Ç‚Ü‚é
+				gbx_register.PC--;//PCã‚’ã™ã™ã‚ãšã«ã¨ã©ã¾ã‚‹
 
 				tmp_CPU_HALT_Flag = true;
 			//}
 		}
 		else {
-			if (((IE_value & IF_value) & 0b00011111) != 0) {//Š„‚è‚İ‚ª•Û—¯’†‚Ì‚Æ‚«
-				gbx_register.PC++;//ƒn[ƒhƒEƒGƒA‚ÌƒoƒO‚Å1ƒoƒCƒg‚·‚·‚ß‚é
+			if (((IE_value & IF_value) & 0b00011111) != 0) {//å‰²ã‚Šè¾¼ã¿ãŒä¿ç•™ä¸­ã®ã¨ã
+				gbx_register.PC++;//ãƒãƒ¼ãƒ‰ã‚¦ã‚¨ã‚¢ã®ãƒã‚°ã§1ãƒã‚¤ãƒˆã™ã™ã‚ã‚‹
 				
 			}
 			else {
-				gbx_register.PC--;//PC‚ğ‚·‚·‚ß‚¸‚É‚Æ‚Ç‚Ü‚é
+				gbx_register.PC--;//PCã‚’ã™ã™ã‚ãšã«ã¨ã©ã¾ã‚‹
 			}
 		}
 	}
@@ -4578,10 +4681,10 @@ private:
 	void cpu_fnc__STOP() {
 		//M_debug_printf("STOP...\n");
 
-		//CPU‚Ì“®ìƒ‚[ƒh‚ğ•ÏX‚·‚é
+		//CPUã®å‹•ä½œãƒ¢ãƒ¼ãƒ‰ã‚’å¤‰æ›´ã™ã‚‹
 		CURRENT_CPU_Clock_2x_Flag__CGB = SET_CPU_Clock_2x_Flag__CGB;
 
-		gbx_register.PC++;//stop–½—ß‚Í1ƒoƒCƒg‚Æ‚Î‚·
+		gbx_register.PC++;//stopå‘½ä»¤ã¯1ãƒã‚¤ãƒˆã¨ã°ã™
 
 		//M_debug_printf("PC = 0x%04x\n", gbx_register.PC - 2);
 		//system("pause");
@@ -4647,8 +4750,8 @@ private:
 	}
 
 	void PREFIX_process(uint8_t instruction_code) {
-		//target_op_ptr‚ªnullptr‚È‚ç(HL)
-		uint8_t* target_op_ptr = get_target_op_ptr(instruction_code); //‘€ì‚·‚é"ƒŒƒWƒXƒ^‚©ƒƒ‚ƒŠ"‚Ìƒ|ƒCƒ“ƒ^
+		//target_op_ptrãŒnullptrãªã‚‰(HL)
+		uint8_t* target_op_ptr = get_target_op_ptr(instruction_code); //æ“ä½œã™ã‚‹"ãƒ¬ã‚¸ã‚¹ã‚¿ã‹ãƒ¡ãƒ¢ãƒª"ã®ãƒã‚¤ãƒ³ã‚¿
 
 		if (0x07 >= instruction_code) {//RLC
 			PREFIX_process__RLC(target_op_ptr);
@@ -4762,7 +4865,7 @@ private:
 
 	*/
 	uint8_t* get_target_op_ptr(uint8_t instruction_code) {
-		uint8_t op_index = (uint8_t)(instruction_code % 8); //= 0`7
+		uint8_t op_index = (uint8_t)(instruction_code % 8); //= 0ï½7
 
 		if (op_index == 0) {
 			return &(gbx_register.B);
@@ -5239,11 +5342,11 @@ private:
 		total_cpu_machine_cycle__div = 0;
 		total_cpu_machine_cycle__tima = 0;
 
-		//memset(gbx_ram.RAM, 0, RAM_SIZE);//RAM‚ğ‰Šú‰»‚µ‚Ä‚Í‚¢‚¯‚È‚¢
+		//memset(gbx_ram.RAM, 0, RAM_SIZE);//RAMã‚’åˆæœŸåŒ–ã—ã¦ã¯ã„ã‘ãªã„
 
 		IME_Flag = false;
 
-		rom_bank_no__low = 1;//‰Šú‚Íƒoƒ“ƒN1‚ğw‚·‚æ‚¤‚É‚·‚é
+		rom_bank_no__low = 1;//åˆæœŸã¯ãƒãƒ³ã‚¯1ã‚’æŒ‡ã™ã‚ˆã†ã«ã™ã‚‹
 		rom_bank_no__high = 0;
 		sram_bank_no = 0;
 		SRAM_Enable_Flag = false;
@@ -5270,12 +5373,12 @@ private:
 			goto read_rom_error;
 		}
 
-		if (((rom_info.CGB_Flag) & 0b11000000) == 0b11000000/*ƒQ[ƒ€ƒ{[ƒCƒJƒ‰[ê—p*/ ||
-			((rom_info.CGB_Flag) & 0b11000000) == 0b10000000/*ƒQ[ƒ€ƒ{[ƒCƒJƒ‰[‘Î‰‚ÅAŒÃ‚¢ƒQ[ƒ€ƒ{[ƒC‚Å‚à“®‚­*/)
+		if (((rom_info.CGB_Flag) & 0b11000000) == 0b11000000/*ã‚²ãƒ¼ãƒ ãƒœãƒ¼ã‚¤ã‚«ãƒ©ãƒ¼å°‚ç”¨*/ ||
+			((rom_info.CGB_Flag) & 0b11000000) == 0b10000000/*ã‚²ãƒ¼ãƒ ãƒœãƒ¼ã‚¤ã‚«ãƒ©ãƒ¼å¯¾å¿œã§ã€å¤ã„ã‚²ãƒ¼ãƒ ãƒœãƒ¼ã‚¤ã§ã‚‚å‹•ã*/)
 		{
 			hardware_type = Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR;
 		}
-		else {/*ƒQ[ƒ€ƒ{[ƒCê—p(”’•‚Ì‚â‚Â)*/
+		else {/*ã‚²ãƒ¼ãƒ ãƒœãƒ¼ã‚¤å°‚ç”¨(ç™½é»’ã®ã‚„ã¤)*/
 			hardware_type = Main::GAME_HARDWARE_TYPE::GAMEBOY;
 		}
 		Main::game_hardware_type = hardware_type;
@@ -5325,11 +5428,11 @@ private:
 			goto read_rom_error;
 		}
 
-		if (0x08 < rom_info.ROM_Type) {//0x09ˆÈ~‚Í–¢‘Î‰
+		if (0x08 < rom_info.ROM_Type) {//0x09ä»¥é™ã¯æœªå¯¾å¿œ
 			goto read_rom_error;
 		}
 
-		if (Main::PGM_size > 32) {//ROM‚ª32KB‚æ‚è‘å‚«‚¢‚Æ‚«‚Íƒoƒ“ƒN‚ğg‚¤
+		if (Main::PGM_size > 32) {//ROMãŒ32KBã‚ˆã‚Šå¤§ãã„ã¨ãã¯ãƒãƒ³ã‚¯ã‚’ä½¿ã†
 			const size_t ROM_BANK_DATA_SIZE = 1024 * (Main::PGM_size - 32);
 
 			ROM_bank_data_ptr = (uint8_t*)malloc(ROM_BANK_DATA_SIZE);
@@ -5342,28 +5445,28 @@ private:
 			}
 		}
 
-		if (rom_info.SRAM_Type == 0) {//RAM–³‚µ
-			//‚È‚É‚à‚µ‚È‚¢
+		if (rom_info.SRAM_Type == 0) {//RAMç„¡ã—
+			//ãªã«ã‚‚ã—ãªã„
 			Main::SRAM_size = 0;
 		}
-		else if (rom_info.SRAM_Type == 1) {//•sg—p
-			//‚È‚É‚à‚µ‚È‚¢
+		else if (rom_info.SRAM_Type == 1) {//ä¸ä½¿ç”¨
+			//ãªã«ã‚‚ã—ãªã„
 			Main::SRAM_size = 0;
 		}
-		else if (rom_info.SRAM_Type == 2) {//8 KB (1ƒoƒ“ƒN)
-			//1ƒoƒ“ƒN‚È‚Ì‚Å’Ç‰Á‚Ì—Ìˆæ‚Í•K—v‚È‚¢
+		else if (rom_info.SRAM_Type == 2) {//8 KB (1ãƒãƒ³ã‚¯)
+			//1ãƒãƒ³ã‚¯ãªã®ã§è¿½åŠ ã®é ˜åŸŸã¯å¿…è¦ãªã„
 			Main::SRAM_size = 8;
 		}
-		else if (rom_info.SRAM_Type == 3) {//32 KB (4ƒoƒ“ƒN)
+		else if (rom_info.SRAM_Type == 3) {//32 KB (4ãƒãƒ³ã‚¯)
 			Main::SRAM_size = 32;
 		}
-		else if (rom_info.SRAM_Type == 4) {//128 KB (16ƒoƒ“ƒN)
+		else if (rom_info.SRAM_Type == 4) {//128 KB (16ãƒãƒ³ã‚¯)
 			Main::SRAM_size = 128;
 		}
-		else if (rom_info.SRAM_Type == 5) {//64 KB (8ƒoƒ“ƒN)
+		else if (rom_info.SRAM_Type == 5) {//64 KB (8ãƒãƒ³ã‚¯)
 			Main::SRAM_size = 64;
 		}
-		else {//‚»‚êˆÈŠO‚Í–¢‘Î‰
+		else {//ãã‚Œä»¥å¤–ã¯æœªå¯¾å¿œ
 			goto read_rom_error;
 		}
 
@@ -5497,7 +5600,7 @@ private:
 	void draw_backbuffer_bg_1pixel(uint8_t screen_x, uint8_t screen_y) {
 		//M_debug_printf("screen_x = %d, screen_y = %d\n", screen_x, screen_y);
 
-		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//”wŒi/ƒEƒBƒ“ƒhƒE‚ª–³Œø‚Å‚ ‚é‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//èƒŒæ™¯/ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒç„¡åŠ¹ã§ã‚ã‚‹ã¨ã
 			return;
 		}
 
@@ -5524,7 +5627,7 @@ private:
 		uint8_t scroll_y = gbx_ram.RAM[0xFF42];
 
 		uint8_t color_2bit = _8bit_bg_backbuffer_data_256x256__ptr[(256 * (uint8_t)(scroll_y + screen_y)) + (uint8_t)(scroll_x + screen_x)];
-		if ((color_2bit & 0b00000011) != 0) {//”wŒiF‚Å‚È‚¢‚Æ‚«
+		if ((color_2bit & 0b00000011) != 0) {//èƒŒæ™¯è‰²ã§ãªã„ã¨ã
 			backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = true;
 		}
 		//else {
@@ -5559,7 +5662,7 @@ private:
 		uint8_t scroll_y = gbx_ram.RAM[0xFF42];
 
 		uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_bg_backbuffer_data_256x256__ptr[(256 * (uint8_t)(scroll_y + screen_y)) + (uint8_t)(scroll_x + screen_x)];
-		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) != 0) {//”wŒiF‚Å‚È‚¢‚Æ‚«
+		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) != 0) {//èƒŒæ™¯è‰²ã§ãªã„ã¨ã
 			backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = true;
 		}
 		//else {
@@ -5568,16 +5671,16 @@ private:
 		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00100000) != 0) {
 			BG_0bit_attribute_flag__cgb[screen_x + screen_y * GBX_WIDTH] = true;
 		}
-		if ((gbx_ram.RAM[0xFF40] & 0b00000001) != 0) {//”wŒi/ƒEƒBƒ“ƒhƒE‚Ìƒ}ƒXƒ^[—Dæ“x‚Ìƒrƒbƒg‚ª0‚Ì‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) != 0) {//èƒŒæ™¯/ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒã‚¹ã‚¿ãƒ¼å„ªå…ˆåº¦ã®ãƒ“ãƒƒãƒˆãŒ0ã®ã¨ã
 			LCDC_0bit_master_flag__cgb[screen_x + screen_y * GBX_WIDTH] = true;
-			//backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = false;//—Dæ‡ˆÊ‚ğ‹­§“I‚É‰º‚°‚é
+			//backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = false;//å„ªå…ˆé †ä½ã‚’å¼·åˆ¶çš„ã«ä¸‹ã’ã‚‹
 		}
 		_8bit_bg_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = pixel_priority_1bit_palette_3bit_color_2bit;
 	}
 
 
 	/*
-	1ƒ‰ƒCƒ“‚²‚Æ‚ÉƒEƒCƒ“ƒhƒE‚Ì“à•”î•ñ‚ğXV‚·‚é‚½‚ß‚Ì‚â‚Â
+	1ãƒ©ã‚¤ãƒ³ã”ã¨ã«ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ã®å†…éƒ¨æƒ…å ±ã‚’æ›´æ–°ã™ã‚‹ãŸã‚ã®ã‚„ã¤
 	*/
 	void update_window_flag__1line() {
 		if (window_backbuffer_draw_internal_flag_x == true) {
@@ -5589,11 +5692,11 @@ private:
 	bool window_backbuffer_draw_internal_flag_x = false;
 	uint32_t window_backbuffer_draw_internal_counter_y = 0;
 	void draw_backbuffer_window_1pixel(uint8_t screen_x, uint8_t screen_y) {
-		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//”wŒi/ƒEƒBƒ“ƒhƒE‚ª–³Œø‚Å‚ ‚é‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) == 0) {//èƒŒæ™¯/ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒç„¡åŠ¹ã§ã‚ã‚‹ã¨ã
 			return;
 		}
 
-		if ((gbx_ram.RAM[0xFF40] & 0b00100000) == 0) {//ƒEƒBƒ“ƒhƒE‚ª–³Œø‚Å‚ ‚é‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b00100000) == 0) {//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒç„¡åŠ¹ã§ã‚ã‚‹ã¨ã
 			return;
 		}
 
@@ -5622,7 +5725,7 @@ private:
 		if (screen_x < window_x ||
 			screen_y < window_y)
 		{
-			//“§–¾‚Ì•”•ª
+			//é€æ˜ã®éƒ¨åˆ†
 			
 			//_8bit_window_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = 0xFF;
 		
@@ -5630,7 +5733,7 @@ private:
 		}
 
 		uint8_t color_2bit = _8bit_window_backbuffer_data_256x256__ptr[(uint8_t)(screen_x - window_x) + ((uint8_t)window_backbuffer_draw_internal_counter_y/*(screen_y - window_y)*/ * 256)];
-		if ((color_2bit & 0b00000011) != 0) {//”wŒiF‚Å‚È‚¢‚Æ‚«
+		if ((color_2bit & 0b00000011) != 0) {//èƒŒæ™¯è‰²ã§ãªã„ã¨ã
 			backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = true;
 		}
 		//else {
@@ -5638,11 +5741,11 @@ private:
 		//}
 		_8bit_window_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = color_2bit;
 
-		window_backbuffer_draw_internal_flag_x = true;//‚±‚Ìƒ‰ƒCƒ“‚ÅƒEƒCƒ“ƒhƒE‚ª•`‰æ‚³‚ê‚½ƒtƒ‰ƒO‚ğ‚½‚Ä‚é
+		window_backbuffer_draw_internal_flag_x = true;//ã“ã®ãƒ©ã‚¤ãƒ³ã§ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ãŒæç”»ã•ã‚ŒãŸãƒ•ãƒ©ã‚°ã‚’ãŸã¦ã‚‹
 	}
 
 	void draw_backbuffer_window_1pixel__cgb(uint8_t screen_x, uint8_t screen_y) {
-		if ((gbx_ram.RAM[0xFF40] & 0b00100000) == 0) {//ƒEƒBƒ“ƒhƒE‚ª–³Œø‚Å‚ ‚é‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b00100000) == 0) {//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒç„¡åŠ¹ã§ã‚ã‚‹ã¨ã
 			return;
 		}
 
@@ -5671,7 +5774,7 @@ private:
 		if (screen_x < window_x ||
 			screen_y < window_y)
 		{
-			//“§–¾‚Ì•”•ª
+			//é€æ˜ã®éƒ¨åˆ†
 
 			//_8bit_window_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = 0xFF;
 
@@ -5679,7 +5782,7 @@ private:
 		}
 
 		uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_window_backbuffer_data_256x256__ptr[(uint8_t)(screen_x - window_x) + ((uint8_t)window_backbuffer_draw_internal_counter_y/*(screen_y - window_y)*/ * 256)];
-		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) != 0) {//”wŒiF‚Å‚È‚¢‚Æ‚«
+		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) != 0) {//èƒŒæ™¯è‰²ã§ãªã„ã¨ã
 			backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = true;
 		}
 		//else {
@@ -5688,19 +5791,19 @@ private:
 		if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00100000) != 0) {
 			BG_0bit_attribute_flag__cgb[screen_x + screen_y * GBX_WIDTH] = true;
 		}
-		if ((gbx_ram.RAM[0xFF40] & 0b00000001) != 0) {//”wŒi/ƒEƒBƒ“ƒhƒE‚Ìƒ}ƒXƒ^[—Dæ“x‚Ìƒrƒbƒg‚ª0‚Ì‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b00000001) != 0) {//èƒŒæ™¯/ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒã‚¹ã‚¿ãƒ¼å„ªå…ˆåº¦ã®ãƒ“ãƒƒãƒˆãŒ0ã®ã¨ã
 			LCDC_0bit_master_flag__cgb[screen_x + screen_y * GBX_WIDTH] = true;
-			//backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = false;//—Dæ‡ˆÊ‚ğ‹­§“I‚É‰º‚°‚é
+			//backbuffer_isnobackgroundcolor_mask[screen_x + screen_y * GBX_WIDTH] = false;//å„ªå…ˆé †ä½ã‚’å¼·åˆ¶çš„ã«ä¸‹ã’ã‚‹
 		}
 		_8bit_window_screen_data_160x144[screen_x + screen_y * GBX_WIDTH] = pixel_priority_1bit_palette_3bit_color_2bit;
 
-		window_backbuffer_draw_internal_flag_x = true;//‚±‚Ìƒ‰ƒCƒ“‚ÅƒEƒCƒ“ƒhƒE‚ª•`‰æ‚³‚ê‚½ƒtƒ‰ƒO‚ğ‚½‚Ä‚é
+		window_backbuffer_draw_internal_flag_x = true;//ã“ã®ãƒ©ã‚¤ãƒ³ã§ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ãŒæç”»ã•ã‚ŒãŸãƒ•ãƒ©ã‚°ã‚’ãŸã¦ã‚‹
 	}
 
 	void _abstruct__create_256_256_backbuffer(uint8_t* backbuffer_data_ptr, bool tilemap_type1_flag, bool tiledata_type1_flag) {
 		for (int i = 0; i < 32; i++) {
 			for (int j = 0; j < 32; j++) {
-				int8_t tile_no;//•„†‚ ‚è
+				int8_t tile_no;//ç¬¦å·ã‚ã‚Š
 				if (tilemap_type1_flag == false) {
 					tile_no = (int8_t)(gbx_ram.RAM[0x9800 + (j + i * 32)]);
 				}
@@ -5726,11 +5829,11 @@ private:
 					for (int x = 0; x < 8; x++) {
 						uint8_t pixel_color_2bit;
 
-						if (tiledata_type1_flag == true) {//ƒ^ƒCƒ‹”Ô†‚Ì•„†‚È‚µ‚ÅŒvZ‚·‚é
+						if (tiledata_type1_flag == true) {//ã‚¿ã‚¤ãƒ«ç•ªå·ã®ç¬¦å·ãªã—ã§è¨ˆç®—ã™ã‚‹
 							pixel_color_2bit = (((tile_data_ptr[0x10 * (uint8_t)tile_no + y * 2]) >> (7 - x)) & 0b00000001) |
 								((((tile_data_ptr[0x10 * (uint8_t)tile_no + y * 2 + 1]) >> (7 - x)) & 0b00000001) << 1);
 						}
-						else {//ƒ^ƒCƒ‹”Ô†‚Ì•„†‚ ‚è‚ÅŒvZ‚·‚é
+						else {//ã‚¿ã‚¤ãƒ«ç•ªå·ã®ç¬¦å·ã‚ã‚Šã§è¨ˆç®—ã™ã‚‹
 							pixel_color_2bit = (((tile_data_ptr[0x10 * tile_no + y * 2]) >> (7 - x)) & 0b00000001) |
 								((((tile_data_ptr[0x10 * tile_no + y * 2 + 1]) >> (7 - x)) & 0b00000001) << 1);
 						}
@@ -5777,7 +5880,7 @@ private:
 				bool reverse_y_flag = ((tilemap_attribute & 0b01000000) != 0) ? true : false;
 				bool max_priority_flag = ((tilemap_attribute & 0b10000000) != 0) ? true : false;
 
-				int8_t tile_no;//•„†‚ ‚è
+				int8_t tile_no;//ç¬¦å·ã‚ã‚Š
 				if (tilemap_type1_flag == false) {
 					tile_no = (int8_t)(gbx_ram.RAM[0x9800 + (j + i * 32)]);
 				}
@@ -5831,11 +5934,11 @@ private:
 						else {
 							y_offset = (7 - y);
 						}
-						if (tiledata_type1_flag == true) {//ƒ^ƒCƒ‹”Ô†‚Ì•„†‚È‚µ‚ÅŒvZ‚·‚é
+						if (tiledata_type1_flag == true) {//ã‚¿ã‚¤ãƒ«ç•ªå·ã®ç¬¦å·ãªã—ã§è¨ˆç®—ã™ã‚‹
 							pixel_priority_1bit_palette_3bit_color_2bit = (((tile_data_ptr[0x10 * (uint8_t)tile_no + y_offset * 2]) >> x_offset) & 0b00000001) |
 								((((tile_data_ptr[0x10 * (uint8_t)tile_no + y_offset * 2 + 1]) >> x_offset) & 0b00000001) << 1);
 						}
-						else {//ƒ^ƒCƒ‹”Ô†‚Ì•„†‚ ‚è‚ÅŒvZ‚·‚é
+						else {//ã‚¿ã‚¤ãƒ«ç•ªå·ã®ç¬¦å·ã‚ã‚Šã§è¨ˆç®—ã™ã‚‹
 							pixel_priority_1bit_palette_3bit_color_2bit = (((tile_data_ptr[0x10 * tile_no + y_offset * 2]) >> x_offset) & 0b00000001) |
 								((((tile_data_ptr[0x10 * tile_no + y_offset * 2 + 1]) >> x_offset) & 0b00000001) << 1);
 						}
@@ -5862,7 +5965,7 @@ private:
 		uint8_t _8bit_backbuffer_data_256x256__mtype1_dtype1[256 * 256];
 		*/
 
-		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//ƒJƒ‰[‚Å‚È‚¢‚Æ‚«
+		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {//ã‚«ãƒ©ãƒ¼ã§ãªã„ã¨ã
 			_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype0_dtype0, false, false);
 			_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype0_dtype1, false, true);
 			_abstruct__create_256_256_backbuffer(_8bit_backbuffer_data_256x256__mtype1_dtype0, true, false);
@@ -5887,7 +5990,7 @@ private:
 				int32_t offset_X = sprite_x + x;
 				int32_t offset_Y = sprite_y + y;
 
-				if (offset_X < 0 || offset_Y < 0 || GBX_WIDTH <= offset_X || GBX_HEIGHT <= offset_Y) {//‰æ–ÊŠO‚Í•`‰æ‚µ‚È‚¢
+				if (offset_X < 0 || offset_Y < 0 || GBX_WIDTH <= offset_X || GBX_HEIGHT <= offset_Y) {//ç”»é¢å¤–ã¯æç”»ã—ãªã„
 					continue;
 				}
 
@@ -5909,15 +6012,15 @@ private:
 				pixel_color_2bit = (((tile_data_ptr[0x10 * tile_no + pixel_color_y_shift_bit * 2]) >> pixel_color_x_shift_bit) & 0b00000001) |
 					((((tile_data_ptr[0x10 * tile_no + pixel_color_y_shift_bit * 2 + 1]) >> pixel_color_x_shift_bit) & 0b00000001) << 1);
 
-				if (palette_OBP1_flag == true) {//ƒpƒŒƒbƒg‚ª1‚Ì‚Æ‚«‚ÍÅãˆÊƒrƒbƒg‚ğ1‚É‚µ‚Ä‚¨‚­
+				if (palette_OBP1_flag == true) {//ãƒ‘ãƒ¬ãƒƒãƒˆãŒ1ã®ã¨ãã¯æœ€ä¸Šä½ãƒ“ãƒƒãƒˆã‚’1ã«ã—ã¦ãŠã
 					pixel_color_2bit |= 0b10000000;
 				}
 
-				if (sprite_max_priority_flag == false) {//—Dæ‡ˆÊ‚ª’á‚¢‚Æ‚«‚ÍÅãˆÊ‚©‚ç‚Q”Ô–Ú‚Ìƒrƒbƒg‚ğ1‚É‚µ‚Ä‚¨‚­
+				if (sprite_max_priority_flag == false) {//å„ªå…ˆé †ä½ãŒä½ã„ã¨ãã¯æœ€ä¸Šä½ã‹ã‚‰ï¼’ç•ªç›®ã®ãƒ“ãƒƒãƒˆã‚’1ã«ã—ã¦ãŠã
 					pixel_color_2bit |= 0b01000000;
 				}
 
-				if ((pixel_color_2bit & 0b00111111) == 0) {//“§–¾•”•ª‚Í‚Æ‚Î‚·
+				if ((pixel_color_2bit & 0b00111111) == 0) {//é€æ˜éƒ¨åˆ†ã¯ã¨ã°ã™
 					continue;
 				}
 
@@ -5938,7 +6041,7 @@ private:
 		bool palette_OBP1_flag = false;
 		bool size_8x16_flag = false;
 
-		//ƒAƒhƒŒƒX‚ª‘å‚«‚¢‡‚É•À‚×‘Ö‚¦‚é‚½‚ß‚Ég‚¤”äŠrŠÖ”
+		//ã‚¢ãƒ‰ãƒ¬ã‚¹ãŒå¤§ãã„é †ã«ä¸¦ã¹æ›¿ãˆã‚‹ãŸã‚ã«ä½¿ã†æ¯”è¼ƒé–¢æ•°
 		bool operator<(const Sprite_Info& right) const {
 			return (address_index < right.address_index) ? false : true;
 		}
@@ -5949,28 +6052,28 @@ private:
 		sprite_info_list.shrink_to_fit();
 	}
 	/*
-	‰æ–Ê‚É•\¦‚³‚ê‚È‚¢16ƒ‰ƒCƒ“‚ÉƒXƒvƒ‰ƒCƒg‚ª‚ ‚é‚©ƒ`ƒFƒbƒN‚·‚é
+	ç”»é¢ã«è¡¨ç¤ºã•ã‚Œãªã„16ãƒ©ã‚¤ãƒ³ã«ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆãŒã‚ã‚‹ã‹ãƒã‚§ãƒƒã‚¯ã™ã‚‹
 	*/
 	void check_sprite_upside_16line() {
 		for (int y = -16; y < 0; y++) {
-			for (int x = -8; x < GBX_WIDTH; x++) {//XÀ•W¶’[‚àƒ`ƒFƒbƒN‚·‚é
+			for (int x = -8; x < GBX_WIDTH; x++) {//Xåº§æ¨™å·¦ç«¯ã‚‚ãƒã‚§ãƒƒã‚¯ã™ã‚‹
 				create_screen_sprite_data__1pixel(x, y);
 			}
 		}
 	}
 
 	void create_screen_sprite_data__1pixel(uint32_t pixel_x, uint32_t pixel_y) {
-		if ((gbx_ram.RAM[0xFF40] & 0b00000010) == 0) {//ƒXƒvƒ‰ƒCƒg‚ª–³Œø‚È‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b00000010) == 0) {//ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆãŒç„¡åŠ¹ãªã¨ã
 			return;
 		}
 
 		for (int i = 0; i < 40; i++) {
 			Sprite_Info s_info;
 
-			s_info.address_index = (4 * i);//ƒXƒvƒ‰ƒCƒgŠÔ‚Ì•`‰æ—Dæ‡ˆÊŒˆ’è‚Ì‚½‚ß‚ÉƒAƒhƒŒƒX‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ•Û‘¶‚µ‚Ä‚¨‚­
+			s_info.address_index = (4 * i);//ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆé–“ã®æç”»å„ªå…ˆé †ä½æ±ºå®šã®ãŸã‚ã«ã‚¢ãƒ‰ãƒ¬ã‚¹ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ä¿å­˜ã—ã¦ãŠã
 
 			/*
-			s_info.x, s_info.x ‚ÍƒXƒNƒŠ[ƒ“‚ÌÀ•W
+			s_info.x, s_info.x ã¯ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã®åº§æ¨™
 			*/
 			s_info.y = (gbx_ram.RAM[0xFE00 + (4 * i)] - 16);
 			s_info.x = (gbx_ram.RAM[0xFE00 + (4 * i) + 1] - 8);
@@ -5985,10 +6088,10 @@ private:
 			s_info.sprite_reverse_x_flag = ((attribute & 0b00100000) != 0) ? true : false;
 			s_info.palette_OBP1_flag = ((attribute & 0b00010000) != 0) ? true : false;
 
-			if ((gbx_ram.RAM[0xFF40] & 0b00000100) == 0) {//8x8‚Ì‚Æ‚«
+			if ((gbx_ram.RAM[0xFF40] & 0b00000100) == 0) {//8x8ã®ã¨ã
 				s_info.size_8x16_flag = false;
 			}
-			else {//8x16‚Ì‚Æ‚«
+			else {//8x16ã®ã¨ã
 				s_info.size_8x16_flag = true;
 			}
 
@@ -6010,10 +6113,10 @@ private:
 		for (int i = 0; i < sprite_info_list.size(); i++) {
 			Sprite_Info s_info = sprite_info_list[i];
 
-			if (s_info.size_8x16_flag == false) {//8x8‚Ì‚Æ‚«
+			if (s_info.size_8x16_flag == false) {//8x8ã®ã¨ã
 				execute_draw_screenbuffer_1sprite_8x8_data(s_info.x, s_info.y, s_info.tile_no, s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.palette_OBP1_flag, s_info.sprite_max_priority_flag);
 			}
-			else {//8x16‚Ì‚Æ‚«
+			else {//8x16ã®ã¨ã
 				if (s_info.sprite_reverse_y_flag == false) {
 					execute_draw_screenbuffer_1sprite_8x8_data(s_info.x, s_info.y, (s_info.tile_no & 0b11111110), s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.palette_OBP1_flag, s_info.sprite_max_priority_flag);
 					execute_draw_screenbuffer_1sprite_8x8_data(s_info.x, s_info.y + 8, (uint8_t)(s_info.tile_no | 0b00000001), s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.palette_OBP1_flag, s_info.sprite_max_priority_flag);
@@ -6045,7 +6148,7 @@ private:
 				int32_t offset_X = sprite_x + x;
 				int32_t offset_Y = sprite_y + y;
 
-				if (offset_X < 0 || offset_Y < 0 || GBX_WIDTH <= offset_X || GBX_HEIGHT <= offset_Y) {//‰æ–ÊŠO‚Í•`‰æ‚µ‚È‚¢
+				if (offset_X < 0 || offset_Y < 0 || GBX_WIDTH <= offset_X || GBX_HEIGHT <= offset_Y) {//ç”»é¢å¤–ã¯æç”»ã—ãªã„
 					continue;
 				}
 
@@ -6067,23 +6170,23 @@ private:
 				pixel_priority_1bit_palette_3bit_color_2bit = (((tile_data_ptr[0x10 * tile_no + pixel_color_y_shift_bit * 2]) >> pixel_color_x_shift_bit) & 0b00000001) |
 					((((tile_data_ptr[0x10 * tile_no + pixel_color_y_shift_bit * 2 + 1]) >> pixel_color_x_shift_bit) & 0b00000001) << 1);
 
-				//if (palette_OBP1_flag == true) {//ƒpƒŒƒbƒg‚ª1‚Ì‚Æ‚«‚ÍÅãˆÊƒrƒbƒg‚ğ1‚É‚µ‚Ä‚¨‚­
+				//if (palette_OBP1_flag == true) {//ãƒ‘ãƒ¬ãƒƒãƒˆãŒ1ã®ã¨ãã¯æœ€ä¸Šä½ãƒ“ãƒƒãƒˆã‚’1ã«ã—ã¦ãŠã
 				//	pixel_color_2bit |= 0b10000000;
 				//}
 				//
-				//if (sprite_max_priority_flag == false) {//—Dæ‡ˆÊ‚ª’á‚¢‚Æ‚«‚ÍÅãˆÊ‚©‚ç‚Q”Ô–Ú‚Ìƒrƒbƒg‚ğ1‚É‚µ‚Ä‚¨‚­
+				//if (sprite_max_priority_flag == false) {//å„ªå…ˆé †ä½ãŒä½ã„ã¨ãã¯æœ€ä¸Šä½ã‹ã‚‰ï¼’ç•ªç›®ã®ãƒ“ãƒƒãƒˆã‚’1ã«ã—ã¦ãŠã
 				//	pixel_color_2bit |= 0b01000000;
 				//}
 				//
-				//if ((pixel_color_2bit & 0b00111111) == 0) {//“§–¾•”•ª‚Í‚Æ‚Î‚·
+				//if ((pixel_color_2bit & 0b00111111) == 0) {//é€æ˜éƒ¨åˆ†ã¯ã¨ã°ã™
 				//	continue;
 				//}
 
 				pixel_priority_1bit_palette_3bit_color_2bit |= ((sprite_palette_no_3bit & 0b111) << 2);
-				if (sprite_max_priority_flag == true) {//—Dæ‡ˆÊ‚ğ‹L˜^‚µ‚Ä‚¨‚­
+				if (sprite_max_priority_flag == true) {//å„ªå…ˆé †ä½ã‚’è¨˜éŒ²ã—ã¦ãŠã
 					pixel_priority_1bit_palette_3bit_color_2bit |= 0b00100000;
 				}
-				if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) == 0) {//“§–¾•”•ª‚Í‚Æ‚Î‚·
+				if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00000011) == 0) {//é€æ˜éƒ¨åˆ†ã¯ã¨ã°ã™
 					continue;
 				}
 
@@ -6106,7 +6209,7 @@ private:
 		uint8_t sprite_palette_no_3bit = 0;
 		bool size_8x16_flag = false;
 
-		//ƒAƒhƒŒƒX‚ª‘å‚«‚¢‡‚É•À‚×‘Ö‚¦‚é‚½‚ß‚Ég‚¤”äŠrŠÖ”
+		//ã‚¢ãƒ‰ãƒ¬ã‚¹ãŒå¤§ãã„é †ã«ä¸¦ã¹æ›¿ãˆã‚‹ãŸã‚ã«ä½¿ã†æ¯”è¼ƒé–¢æ•°
 		bool operator<(const Sprite_Info_CGB& right) const {
 			return (address_index < right.address_index) ? false : true;
 		}
@@ -6117,28 +6220,28 @@ private:
 		sprite_info_list__cgb.shrink_to_fit();
 	}
 	/*
-	‰æ–Ê‚É•\¦‚³‚ê‚È‚¢16ƒ‰ƒCƒ“‚ÉƒXƒvƒ‰ƒCƒg‚ª‚ ‚é‚©ƒ`ƒFƒbƒN‚·‚é
+	ç”»é¢ã«è¡¨ç¤ºã•ã‚Œãªã„16ãƒ©ã‚¤ãƒ³ã«ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆãŒã‚ã‚‹ã‹ãƒã‚§ãƒƒã‚¯ã™ã‚‹
 	*/
 	void check_sprite_upside_16line__cgb() {
 		for (int y = -16; y < 0; y++) {
-			for (int x = -8; x < GBX_WIDTH; x++) {//XÀ•W¶’[‚àƒ`ƒFƒbƒN‚·‚é
+			for (int x = -8; x < GBX_WIDTH; x++) {//Xåº§æ¨™å·¦ç«¯ã‚‚ãƒã‚§ãƒƒã‚¯ã™ã‚‹
 				create_screen_sprite_data__1pixel__cgb(x, y);
 			}
 		}
 	}
 
 	void create_screen_sprite_data__1pixel__cgb(uint32_t pixel_x, uint32_t pixel_y) {
-		if ((gbx_ram.RAM[0xFF40] & 0b00000010) == 0) {//ƒXƒvƒ‰ƒCƒg‚ª–³Œø‚È‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b00000010) == 0) {//ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆãŒç„¡åŠ¹ãªã¨ã
 			return;
 		}
 
 		for (int i = 0; i < 40; i++) {
 			Sprite_Info_CGB s_info;
 
-			s_info.address_index = (4 * i);//ƒXƒvƒ‰ƒCƒgŠÔ‚Ì•`‰æ—Dæ‡ˆÊŒˆ’è‚Ì‚½‚ß‚ÉƒAƒhƒŒƒX‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ•Û‘¶‚µ‚Ä‚¨‚­
+			s_info.address_index = (4 * i);//ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆé–“ã®æç”»å„ªå…ˆé †ä½æ±ºå®šã®ãŸã‚ã«ã‚¢ãƒ‰ãƒ¬ã‚¹ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ä¿å­˜ã—ã¦ãŠã
 
 			/*
-			s_info.x, s_info.x ‚ÍƒXƒNƒŠ[ƒ“‚ÌÀ•W
+			s_info.x, s_info.x ã¯ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã®åº§æ¨™
 			*/
 			s_info.y = (gbx_ram.RAM[0xFE00 + (4 * i)] - 16);
 			s_info.x = (gbx_ram.RAM[0xFE00 + (4 * i) + 1] - 8);
@@ -6154,10 +6257,10 @@ private:
 			s_info.tile_data_bank1_flag = ((attribute & 0b00001000) != 0) ? true : false;
 			s_info.sprite_palette_no_3bit = (attribute & 0b111);
 
-			if ((gbx_ram.RAM[0xFF40] & 0b00000100) == 0) {//8x8‚Ì‚Æ‚«
+			if ((gbx_ram.RAM[0xFF40] & 0b00000100) == 0) {//8x8ã®ã¨ã
 				s_info.size_8x16_flag = false;
 			}
-			else {//8x16‚Ì‚Æ‚«
+			else {//8x16ã®ã¨ã
 				s_info.size_8x16_flag = true;
 			}
 
@@ -6179,10 +6282,10 @@ private:
 		for (int i = 0; i < sprite_info_list__cgb.size(); i++) {
 			Sprite_Info_CGB s_info = sprite_info_list__cgb[i];
 
-			if (s_info.size_8x16_flag == false) {//8x8‚Ì‚Æ‚«
+			if (s_info.size_8x16_flag == false) {//8x8ã®ã¨ã
 				execute_draw_screenbuffer_1sprite_8x8_data__cgb(s_info.x, s_info.y, s_info.tile_no, s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.sprite_max_priority_flag, s_info.tile_data_bank1_flag, s_info.sprite_palette_no_3bit);
 			}
-			else {//8x16‚Ì‚Æ‚«
+			else {//8x16ã®ã¨ã
 				if (s_info.sprite_reverse_y_flag == false) {
 					execute_draw_screenbuffer_1sprite_8x8_data__cgb(s_info.x, s_info.y, (s_info.tile_no & 0b11111110), s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.sprite_max_priority_flag, s_info.tile_data_bank1_flag, s_info.sprite_palette_no_3bit);
 					execute_draw_screenbuffer_1sprite_8x8_data__cgb(s_info.x, s_info.y + 8, (uint8_t)(s_info.tile_no | 0b00000001), s_info.sprite_reverse_x_flag, s_info.sprite_reverse_y_flag, s_info.sprite_max_priority_flag, s_info.tile_data_bank1_flag, s_info.sprite_palette_no_3bit);
@@ -6198,14 +6301,14 @@ private:
 	//==================================================================================
 
 	void update_LCD_STAT() {
-		if ((gbx_ram.RAM[0xFF40] & 0b10000000) == 0) {//LCD—LŒøƒtƒ‰ƒO‚ª–³Œø‚Ì‚Æ‚«
-			//LCD‚ªƒIƒt‚Ì‚Æ‚«‚ÍVblankó‘Ô‚É‚µ‚Ä‚¨‚­
+		if ((gbx_ram.RAM[0xFF40] & 0b10000000) == 0) {//LCDæœ‰åŠ¹ãƒ•ãƒ©ã‚°ãŒç„¡åŠ¹ã®ã¨ã
+			//LCDãŒã‚ªãƒ•ã®ã¨ãã¯VblankçŠ¶æ…‹ã«ã—ã¦ãŠã
 			set_LCD_STAT_mode_flag(1);//1: VBlank
 
 			return;
 		}
 
-		uint8_t bef_STAT_mode = (read_RAM_8bit(0xFF41) & 0b00000011);//ˆÈ‘O‚Ìƒ‚[ƒh‚ğ•Û‘¶‚µ‚Ä‚¨‚­
+		uint8_t bef_STAT_mode = (read_RAM_8bit(0xFF41) & 0b00000011);//ä»¥å‰ã®ãƒ¢ãƒ¼ãƒ‰ã‚’ä¿å­˜ã—ã¦ãŠã
 
 		if (ppu_line_y >= 144) {
 			set_LCD_STAT_mode_flag(1);//1: VBlank
@@ -6221,32 +6324,32 @@ private:
 		}
 
 		uint8_t current_STAT_mode = (read_RAM_8bit(0xFF41) & 0b00000011);
-		if (bef_STAT_mode != current_STAT_mode) {//ƒ‚[ƒh‚ª•ÏX‚³‚ê‚½ê‡
+		if (bef_STAT_mode != current_STAT_mode) {//ãƒ¢ãƒ¼ãƒ‰ãŒå¤‰æ›´ã•ã‚ŒãŸå ´åˆ
 			if (current_STAT_mode == 0) {//0: HBlank
-				//LCD_STATŠ„‚è‚İ HBLANK
+				//LCD_STATå‰²ã‚Šè¾¼ã¿ HBLANK
 				if ((read_RAM_8bit(0xFF41) & 0b00001000) != 0) {//Bit 3 - Mode 0 HBlank STAT Interrupt source
-					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCD‚ª—LŒø‚È
-						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STATŠ„‚è‚İ‚ğ—v‹‚·‚é
+					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDãŒæœ‰åŠ¹ãªæ™‚
+						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STATå‰²ã‚Šè¾¼ã¿ã‚’è¦æ±‚ã™ã‚‹
 					//}
 				}
 
 				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
-					execute_HBLANK_DMA();//HBLANK DMA‚ğ‚·‚é
+					execute_HBLANK_DMA();//HBLANK DMAã‚’ã™ã‚‹
 				}
 			}
 			else if (current_STAT_mode == 1) {//1: VBlank
-				//LCD_STATŠ„‚è‚İ VBLANK
+				//LCD_STATå‰²ã‚Šè¾¼ã¿ VBLANK
 				if ((read_RAM_8bit(0xFF41) & 0b00010000) != 0) {//Bit 4 - Mode 1 VBlank STAT Interrupt source
-					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCD‚ª—LŒø‚È
-						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STATŠ„‚è‚İ‚ğ—v‹‚·‚é
+					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDãŒæœ‰åŠ¹ãªæ™‚
+						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STATå‰²ã‚Šè¾¼ã¿ã‚’è¦æ±‚ã™ã‚‹
 					//}
 				}
 			}
 			else if (current_STAT_mode == 2) {//2: Searching OAM
-				//LCD_STATŠ„‚è‚İ OAM
+				//LCD_STATå‰²ã‚Šè¾¼ã¿ OAM
 				if ((read_RAM_8bit(0xFF41) & 0b00100000) != 0) {//Bit 5 - Mode 2 OAM STAT Interrupt source
-					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCD‚ª—LŒø‚È
-						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STATŠ„‚è‚İ‚ğ—v‹‚·‚é
+					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDãŒæœ‰åŠ¹ãªæ™‚
+						gbx_ram.RAM[0xFF0F] |= 0b00000010;//STATå‰²ã‚Šè¾¼ã¿ã‚’è¦æ±‚ã™ã‚‹
 					//}
 				}
 			}
@@ -6257,12 +6360,12 @@ private:
 		write_RAM_8bit(0xFF41, (read_RAM_8bit(0xFF41) & 0b11111100) | (mode_flag & 0b00000011));
 	}
 
-	uint32_t c_cycle_mod = 0;//—]‚è‚ÌC-Cycle
+	uint32_t c_cycle_mod = 0;//ä½™ã‚Šã®C-Cycle
 	uint32_t ppu_line_x = 0;
 	uint32_t ppu_line_y = 0;
 
 	void execute_ppu_process(uint64_t c_cycle) {
-		if ((gbx_ram.RAM[0xFF40] & 0b10000000) == 0) {//LCD—LŒøƒtƒ‰ƒO‚ª–³Œø‚Ì‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b10000000) == 0) {//LCDæœ‰åŠ¹ãƒ•ãƒ©ã‚°ãŒç„¡åŠ¹ã®ã¨ã
 			for (uint64_t k = 0; k < c_cycle; k++) {
 				ppu_line_x++;
 				if (ppu_line_x >= 456) {
@@ -6270,14 +6373,14 @@ private:
 					ppu_line_y++;
 					write_RAM_8bit(0xFF44, ppu_line_y);
 
-					//if (ppu_line_y == 144) {//VblankŠJn
-					//	if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCD‚ª—LŒø‚È
-					//		gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblank‚ÌŠ„‚è‚İ‚ğ—v‹‚·‚é
+					//if (ppu_line_y == 144) {//Vblanké–‹å§‹
+					//	if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDãŒæœ‰åŠ¹ãªæ™‚
+					//		gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblankã®å‰²ã‚Šè¾¼ã¿ã‚’è¦æ±‚ã™ã‚‹
 					//	}
 					//}
 
-					if (ppu_line_y >= 154) {//VblankI—¹
-						c_cycle_mod = c_cycle - (k + 1);//—]‚è‚ÌC-Cycle‚ğŒvZ‚·‚é
+					if (ppu_line_y >= 154) {//Vblankçµ‚äº†
+						c_cycle_mod = c_cycle - (k + 1);//ä½™ã‚Šã®C-Cycleã‚’è¨ˆç®—ã™ã‚‹
 
 						return;
 					}
@@ -6292,7 +6395,7 @@ private:
 		for (uint64_t i = 0; i < c_cycle; i++) {
 			//M_debug_printf("ppu_line_x = %d, ppu_line_y = %d\n", ppu_line_x, ppu_line_y);
 
-			if (ppu_line_x == 0 && ppu_line_y == 0) {//‰‰ñ‚Íã’[‚É‚ ‚éƒXƒvƒ‰ƒCƒg‚Ìƒ`ƒFƒbƒN‚ğ‚·‚é
+			if (ppu_line_x == 0 && ppu_line_y == 0) {//åˆå›ã¯ä¸Šç«¯ã«ã‚ã‚‹ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆã®ãƒã‚§ãƒƒã‚¯ã‚’ã™ã‚‹
 				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
 					check_sprite_upside_16line();
 				}
@@ -6301,7 +6404,7 @@ private:
 				}
 			}
 
-			//•`‰æ’†
+			//æç”»ä¸­
 			if ((80 <= ppu_line_x && ppu_line_x < 240) && ppu_line_y < 144) {
 				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
 					draw_backbuffer_bg_1pixel(ppu_line_x - 80, ppu_line_y);
@@ -6312,7 +6415,7 @@ private:
 					draw_backbuffer_window_1pixel__cgb(ppu_line_x - 80, ppu_line_y);
 				}
 			}
-			if (((80 - 8) <= ppu_line_x && ppu_line_x < 240) && ppu_line_y < 144) {//XÀ•W¶’[‚àƒ`ƒFƒbƒN‚·‚é
+			if (((80 - 8) <= ppu_line_x && ppu_line_x < 240) && ppu_line_y < 144) {//Xåº§æ¨™å·¦ç«¯ã‚‚ãƒã‚§ãƒƒã‚¯ã™ã‚‹
 				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
 					create_screen_sprite_data__1pixel(ppu_line_x - 80, ppu_line_y);
 				}
@@ -6327,18 +6430,18 @@ private:
 				ppu_line_y++;
 				write_RAM_8bit(0xFF44, ppu_line_y);
 
-				update_window_flag__1line();//ƒEƒBƒ“ƒhƒE‚Ì“à•”î•ñ‚ğ1ƒ‰ƒCƒ“‚²‚Æ‚ÉXV‚·‚é
+				update_window_flag__1line();//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®å†…éƒ¨æƒ…å ±ã‚’1ãƒ©ã‚¤ãƒ³ã”ã¨ã«æ›´æ–°ã™ã‚‹
 
 				//===================================
-				//LCD_STATŠ„‚è‚İ LYC=LY
+				//LCD_STATå‰²ã‚Šè¾¼ã¿ LYC=LY
 				if ((read_RAM_8bit(0xFF41) & 0b01000000) != 0) {//Bit 6 - LYC=LY STAT Interrupt source
 					if (ppu_line_y == read_RAM_8bit(0xFF45)) {
-						//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCD‚ª—LŒø‚È
-							gbx_ram.RAM[0xFF0F] |= 0b00000010;//STATŠ„‚è‚İ‚ğ—v‹‚·‚é
+						//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDãŒæœ‰åŠ¹ãªæ™‚
+							gbx_ram.RAM[0xFF0F] |= 0b00000010;//STATå‰²ã‚Šè¾¼ã¿ã‚’è¦æ±‚ã™ã‚‹
 						//}
 					}
 				}
-				//LCD_STAT‚ÌLYC=LY‚Ìƒtƒ‰ƒO‚ğXV‚·‚é
+				//LCD_STATã®LYC=LYã®ãƒ•ãƒ©ã‚°ã‚’æ›´æ–°ã™ã‚‹
 				if (ppu_line_y == read_RAM_8bit(0xFF45)) {
 					write_RAM_8bit(0xFF41, read_RAM_8bit(0xFF41) | 0b00000100);
 				}
@@ -6347,27 +6450,27 @@ private:
 				}
 				//===================================
 
-				if (ppu_line_y == 144) {//VblankŠJn
-					//‰‚ß‚Ä‚Ì‚Æ‚«‚ÍVblank‚ÌŠ„‚è‚İ‚ğ—v‹‚·‚é
-					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCD‚ª—LŒø‚È
-						gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblank‚ÌŠ„‚è‚İ‚ğ—v‹‚·‚é
+				if (ppu_line_y == 144) {//Vblanké–‹å§‹
+					//åˆã‚ã¦ã®ã¨ãã¯Vblankã®å‰²ã‚Šè¾¼ã¿ã‚’è¦æ±‚ã™ã‚‹
+					//if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDãŒæœ‰åŠ¹ãªæ™‚
+						gbx_ram.RAM[0xFF0F] |= 0b00000001;//Vblankã®å‰²ã‚Šè¾¼ã¿ã‚’è¦æ±‚ã™ã‚‹
 					//}
 				}
 
-				if (ppu_line_y >= 154) {//VblankI—¹
-					c_cycle_mod = c_cycle - (i + 1);//—]‚è‚ÌC-Cycle‚ğŒvZ‚·‚é
+				if (ppu_line_y >= 154) {//Vblankçµ‚äº†
+					c_cycle_mod = c_cycle - (i + 1);//ä½™ã‚Šã®C-Cycleã‚’è¨ˆç®—ã™ã‚‹
 
 					return;
 				}
 			}
 		}
 
-		c_cycle_mod = 0;//•’i‚Í—]‚è0
+		c_cycle_mod = 0;//æ™®æ®µã¯ä½™ã‚Š0
 	}
 
-	bool backbuffer_isnobackgroundcolor_mask[GBX_WIDTH * GBX_HEIGHT] = { false };//”wŒiF‚Å‚È‚¢ê‡true
+	bool backbuffer_isnobackgroundcolor_mask[GBX_WIDTH * GBX_HEIGHT] = { false };//èƒŒæ™¯è‰²ã§ãªã„å ´åˆtrue
 
-	void draw_screen_bg(MyDirectXSystem* myDirectXSystem) {
+	void draw_screen_bg() {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
 			return;
@@ -6393,7 +6496,7 @@ private:
 		pTexture->Release();
 	}
 
-	void draw_screen_window(MyDirectXSystem* myDirectXSystem) {
+	void draw_screen_window() {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
 			return;
@@ -6406,7 +6509,7 @@ private:
 			for (int x = 0; x < GBX_WIDTH; x++) {
 				uint8_t color_no = _8bit_window_screen_data_160x144[y * GBX_WIDTH + x];
 				DWORD color;
-				if (color_no == 0xFF) {//“§–¾•”•ª‚Ì
+				if (color_no == 0xFF) {//é€æ˜éƒ¨åˆ†ã®æ™‚
 					color = 0x00000000;
 				}
 				else {
@@ -6425,7 +6528,7 @@ private:
 		pTexture->Release();
 	}
 
-	void draw_screen_sprite(MyDirectXSystem* myDirectXSystem) {
+	void draw_screen_sprite() {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
 			return;
@@ -6439,8 +6542,8 @@ private:
 				uint8_t color_no = _8bit_sprite_screen_data_160x144[y * GBX_WIDTH + x];
 				DWORD color;
 
-				if ((color_no & 0b01000000) != 0) {//—Dæ‡ˆÊ‚ª’á‚¢‚Æ‚«
-					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == true || color_no == 0xFF) {//”wŒiF‚Å‚È‚¢ê‡
+				if ((color_no & 0b01000000) != 0) {//å„ªå…ˆé †ä½ãŒä½ã„ã¨ã
+					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == true || color_no == 0xFF) {//èƒŒæ™¯è‰²ã§ãªã„å ´åˆ
 						color = 0x00000000;
 					}
 					else {
@@ -6448,7 +6551,7 @@ private:
 					}
 				}
 				else {
-					if (color_no == 0xFF) {//“§–¾•”•ª‚Ì
+					if (color_no == 0xFF) {//é€æ˜éƒ¨åˆ†ã®æ™‚
 						color = 0x00000000;
 					}
 					else {
@@ -6473,7 +6576,7 @@ private:
 	bool LCDC_0bit_master_flag__cgb[GBX_WIDTH * GBX_HEIGHT] = { false };
 	bool BG_0bit_attribute_flag__cgb[GBX_WIDTH * GBX_HEIGHT] = { false };
 
-	void draw_screen_bg__cgb(MyDirectXSystem* myDirectXSystem) {
+	void draw_screen_bg__cgb() {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
 			return;
@@ -6503,7 +6606,7 @@ private:
 		pTexture->Release();
 	}
 
-	void draw_screen_window__cgb(MyDirectXSystem* myDirectXSystem) {
+	void draw_screen_window__cgb() {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
 			return;
@@ -6516,7 +6619,7 @@ private:
 			for (int x = 0; x < GBX_WIDTH; x++) {
 				uint8_t pixel_priority_1bit_palette_3bit_color_2bit = _8bit_window_screen_data_160x144[y * GBX_WIDTH + x];
 				DWORD color;
-				if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//“§–¾•”•ª‚Ì
+				if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//é€æ˜éƒ¨åˆ†ã®æ™‚
 					color = 0x00000000;
 				}
 				else {
@@ -6541,7 +6644,7 @@ private:
 		pTexture->Release();
 	}
 
-	void draw_screen_sprite__cgb(MyDirectXSystem* myDirectXSystem) {
+	void draw_screen_sprite__cgb() {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
 			return;
@@ -6556,10 +6659,10 @@ private:
 				DWORD color;
 
 				if (LCDC_0bit_master_flag__cgb[y * GBX_WIDTH + x] == false) {
-					if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//“§–¾•”•ª‚Ì‚Æ‚«
+					if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//é€æ˜éƒ¨åˆ†ã®ã¨ã
 						color = 0x00000000;
 					}
-					else {//“§–¾•”•ª‚Å‚È‚¢‚Æ‚«
+					else {//é€æ˜éƒ¨åˆ†ã§ãªã„ã¨ã
 						//color = get_sprite_palette(color_no & 0b00111111, ((color_no & 0b10000000) != 0) ? true : false);
 						uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
 						uint8_t r_5bit = color_2byte & 0b11111;
@@ -6570,11 +6673,11 @@ private:
 					}
 				}
 				else if (BG_0bit_attribute_flag__cgb[y * GBX_WIDTH + x] == true) {
-					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == false) {//”wŒiF‚Ì‚Æ‚«
-						if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//“§–¾•”•ª‚Ì‚Æ‚«
+					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == false) {//èƒŒæ™¯è‰²ã®ã¨ã
+						if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//é€æ˜éƒ¨åˆ†ã®ã¨ã
 							color = 0x00000000;
 						}
-						else {//“§–¾•”•ª‚Å‚È‚¢‚Æ‚«
+						else {//é€æ˜éƒ¨åˆ†ã§ãªã„ã¨ã
 							//color = get_sprite_palette(color_no & 0b00111111, ((color_no & 0b10000000) != 0) ? true : false);
 							uint16_t color_2byte = get_sprite_palette__cgb((pixel_priority_1bit_palette_3bit_color_2bit >> 2) & 0b111, pixel_priority_1bit_palette_3bit_color_2bit & 0b11);
 							uint8_t r_5bit = color_2byte & 0b11111;
@@ -6584,12 +6687,12 @@ private:
 							color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
 						}
 					}
-					else {//”wŒiF‚Å‚È‚¢‚Æ‚«
+					else {//èƒŒæ™¯è‰²ã§ãªã„ã¨ã
 						color = 0x00000000;
 					}
 				}
-				else if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00100000) == 0) {//—Dæ‡ˆÊ‚ª’á‚¢‚Æ‚«
-					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == true || pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//”wŒiF‚Å‚È‚¢ê‡
+				else if ((pixel_priority_1bit_palette_3bit_color_2bit & 0b00100000) == 0) {//å„ªå…ˆé †ä½ãŒä½ã„ã¨ã
+					if (backbuffer_isnobackgroundcolor_mask[y * GBX_WIDTH + x] == true || pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//èƒŒæ™¯è‰²ã§ãªã„å ´åˆ
 						color = 0x00000000;
 					}
 					else {
@@ -6603,7 +6706,7 @@ private:
 					}
 				}
 				else {
-					if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//“§–¾•”•ª‚Ì
+					if (pixel_priority_1bit_palette_3bit_color_2bit == 0xFF) {//é€æ˜éƒ¨åˆ†ã®æ™‚
 						color = 0x00000000;
 					}
 					else {
@@ -6632,7 +6735,7 @@ private:
 	//===================================================================
 
 #ifdef GAMEBOYCOLOR_EMULATOR_DEBUG
-	void _debug_draw_screen_256x256_backbuffer(MyDirectXSystem* myDirectXSystem, uint8_t buffer_type) {
+	void _debug_draw_screen_256x256_backbuffer(uint8_t buffer_type) {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(256, 256, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
 			return;
@@ -6669,7 +6772,7 @@ private:
 		pTexture->Release();
 	}
 
-	void _debug_draw_screen_256x256_backbuffer__cgb(MyDirectXSystem* myDirectXSystem, uint8_t buffer_type) {
+	void _debug_draw_screen_256x256_backbuffer__cgb(uint8_t buffer_type) {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(256, 256, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
 			return;
@@ -6713,8 +6816,8 @@ private:
 	}
 #endif
 
-	//LCDƒIƒt‚Ì‚Æ‚«‚Ì‰æ–Ê‚Ì•`‰æ
-	void draw_screen_LCD_off(MyDirectXSystem* myDirectXSystem) {
+	//LCDã‚ªãƒ•ã®ã¨ãã®ç”»é¢ã®æç”»
+	void draw_screen_LCD_off() {
 		LPDIRECT3DTEXTURE9 pTexture;
 		if (FAILED(myDirectXSystem->get_pDevice3D()->CreateTexture(GBX_WIDTH, GBX_HEIGHT, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &pTexture, NULL))) {
 			return;
@@ -6744,7 +6847,7 @@ private:
 	}
 
 #ifdef GAMEBOYCOLOR_EMULATOR_DEBUG
-	void __debug_draw_all_palette__cgb(MyDirectXSystem* myDirectXSystem) {
+	void __debug_draw_all_palette__cgb() {
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 4; j++) {
 				uint16_t color_2byte = get_bg_window_palette__cgb(i, j);
@@ -6786,7 +6889,7 @@ private:
 
 
 	/*
-	Š„‚è‚İ‚ğÀs‚µ‚½‚Æ‚«‚Ítrue‚ğ‚©‚¦‚·
+	å‰²ã‚Šè¾¼ã¿ã‚’å®Ÿè¡Œã—ãŸã¨ãã¯trueã‚’ã‹ãˆã™
 	*/
 	bool interrupt_process() {
 		uint8_t IE_value = gbx_ram.RAM[0xFFFF];
@@ -6795,35 +6898,35 @@ private:
 		if ((IE_value & 0b00000001) != 0 && (IF_value & 0b00000001) != 0) {//VBlank
 			execute_interrupt(0x40);
 
-			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00000001));//‘Î‰‚·‚éIF‚Ìbit‚ğƒNƒŠƒA‚·‚é
+			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00000001));//å¯¾å¿œã™ã‚‹IFã®bitã‚’ã‚¯ãƒªã‚¢ã™ã‚‹
 
 			return true;
 		}
 		else if ((IE_value & 0b00000010) != 0 && (IF_value & 0b00000010) != 0) {//LCD STAT
 			execute_interrupt(0x48);
 
-			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00000010));//‘Î‰‚·‚éIF‚Ìbit‚ğƒNƒŠƒA‚·‚é
+			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00000010));//å¯¾å¿œã™ã‚‹IFã®bitã‚’ã‚¯ãƒªã‚¢ã™ã‚‹
 
 			return true;
 		}
 		else if ((IE_value & 0b00000100) != 0 && (IF_value & 0b00000100) != 0) {//Timer
 			execute_interrupt(0x50);
 
-			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00000100));//‘Î‰‚·‚éIF‚Ìbit‚ğƒNƒŠƒA‚·‚é
+			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00000100));//å¯¾å¿œã™ã‚‹IFã®bitã‚’ã‚¯ãƒªã‚¢ã™ã‚‹
 
 			return true;
 		}
 		else if ((IE_value & 0b00001000) != 0 && (IF_value & 0b00001000) != 0) {//Serial
 			execute_interrupt(0x58);
 
-			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00001000));//‘Î‰‚·‚éIF‚Ìbit‚ğƒNƒŠƒA‚·‚é
+			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00001000));//å¯¾å¿œã™ã‚‹IFã®bitã‚’ã‚¯ãƒªã‚¢ã™ã‚‹
 
 			return true;
 		}
 		else if ((IE_value & 0b00010000) != 0 && (IF_value & 0b00010000) != 0) {//Joypad
 			execute_interrupt(0x60);
 
-			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00010000));//‘Î‰‚·‚éIF‚Ìbit‚ğƒNƒŠƒA‚·‚é
+			gbx_ram.RAM[0xFF0F] &= (uint8_t)(~(0b00010000));//å¯¾å¿œã™ã‚‹IFã®bitã‚’ã‚¯ãƒªã‚¢ã™ã‚‹
 
 			return true;
 		}
@@ -6832,8 +6935,8 @@ private:
 	}
 
 	void execute_interrupt(uint8_t handler_addr) {
-		if (tmp_CPU_HALT_Flag == true) {//HALT–½—ß‚ÅŠ„‚è‚İ‚ğ‘Ò‚Á‚Ä‚¢‚½‚Æ‚«
-			gbx_register.PC++;//PC+1‚ğPUSH‚·‚é
+		if (tmp_CPU_HALT_Flag == true) {//HALTå‘½ä»¤ã§å‰²ã‚Šè¾¼ã¿ã‚’å¾…ã£ã¦ã„ãŸã¨ã
+			gbx_register.PC++;//PC+1ã‚’PUSHã™ã‚‹
 
 			tmp_CPU_HALT_Flag = false;
 		}
@@ -6842,35 +6945,150 @@ private:
 
 		gbx_register.PC = (uint16_t)handler_addr;
 
-		IME_Flag = false;//IME‚ğ–³Œø‚É‚·‚é
+		IME_Flag = false;//IMEã‚’ç„¡åŠ¹ã«ã™ã‚‹
 	}
 
 	void watch_key_interrupt() {
-		if ((gbx_ram.RAM[0xFF00] & 0b00010000) == 0) {//•ûŒüƒL[
+		if ((gbx_ram.RAM[0xFF00] & 0b00010000) == 0) {//æ–¹å‘ã‚­ãƒ¼
 
 			uint8_t b_down = (key->get_input_state__GBX__(INPUT_MY_ID_DOWN) != 0) ? 1 : 0;
 			uint8_t b_up = (key->get_input_state__GBX__(INPUT_MY_ID_UP) != 0) ? 1 : 0;
 			uint8_t b_left = (key->get_input_state__GBX__(INPUT_MY_ID_LEFT) != 0) ? 1 : 0;
 			uint8_t b_right = (key->get_input_state__GBX__(INPUT_MY_ID_RIGHT) != 0) ? 1 : 0;
 
-			if ((b_down + b_up + b_left + b_right) != 0) {//ƒ{ƒ^ƒ“‚ª1‚Â‚Å‚à‰Ÿ‚³‚ê‚Ä‚¢‚½‚Æ‚«
-				gbx_ram.RAM[0xFF0F] |= 0b00010000;//JPAD‚ÌŠ„‚è‚İ‚ğ—v‹‚·‚é
+			if ((b_down + b_up + b_left + b_right) != 0) {//ãƒœã‚¿ãƒ³ãŒ1ã¤ã§ã‚‚æŠ¼ã•ã‚Œã¦ã„ãŸã¨ã
+				gbx_ram.RAM[0xFF0F] |= 0b00010000;//JPADã®å‰²ã‚Šè¾¼ã¿ã‚’è¦æ±‚ã™ã‚‹
 			}
 		}
-		else if ((gbx_ram.RAM[0xFF00] & 0b00100000) == 0) {//ƒAƒNƒVƒ‡ƒ“ƒL[
+		else if ((gbx_ram.RAM[0xFF00] & 0b00100000) == 0) {//ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚­ãƒ¼
 			uint8_t b_start = (key->get_input_state__GBX__(INPUT_MY_ID_START) != 0) ? 1 : 0;
 			uint8_t b_select = (key->get_input_state__GBX__(INPUT_MY_ID_SELECT) != 0) ? 1 : 0;
 			uint8_t b_b = (key->get_input_state__GBX__(INPUT_MY_ID_B) != 0) ? 1 : 0;
 			uint8_t b_a = (key->get_input_state__GBX__(INPUT_MY_ID_A) != 0) ? 1 : 0;
 
-			if ((b_start + b_select + b_b + b_a) != 0) {//ƒ{ƒ^ƒ“‚ª1‚Â‚Å‚à‰Ÿ‚³‚ê‚Ä‚¢‚½‚Æ‚«
-				gbx_ram.RAM[0xFF0F] |= 0b00010000;//JPAD‚ÌŠ„‚è‚İ‚ğ—v‹‚·‚é
+			if ((b_start + b_select + b_b + b_a) != 0) {//ãƒœã‚¿ãƒ³ãŒ1ã¤ã§ã‚‚æŠ¼ã•ã‚Œã¦ã„ãŸã¨ã
+				gbx_ram.RAM[0xFF0F] |= 0b00010000;//JPADã®å‰²ã‚Šè¾¼ã¿ã‚’è¦æ±‚ã™ã‚‹
 			}
 		}
 	}
 
+	void draw_debugmode_info() {
+		char str[256];
+		debug_info_font_1->draw_process_base_center_with_edge(_T("ãƒ‡ãƒãƒƒã‚°æƒ…å ±"), WINDOW_WIDTH / 2, 20, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T("ãƒ¬ã‚¸ã‚¹ã‚¿"), 20, 50, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "A = 0x%02X", gbx_register.A);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 80, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "B = 0x%02X", gbx_register.B);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 105, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "C = 0x%02X", gbx_register.C);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 130, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "D = 0x%02X", gbx_register.D);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 155, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "E = 0x%02X", gbx_register.E);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 180, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "H = 0x%02X", gbx_register.H);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 205, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "L = 0x%02X", gbx_register.A);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 230, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "AF = 0x%04X", gbx_register.AF);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 260, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "BC = 0x%04X", gbx_register.BC);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 285, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "DE = 0x%04X", gbx_register.DE);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 310, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "HL = 0x%04X", gbx_register.HL);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 335, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "FLAGS = 0x%02X", gbx_register.Flags);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 365, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "Z[%s]  N[%s]  H[%s]  C[%s]",
+			((gbx_register.Flags & 0b10000000) != 0) ? "1" : "0",
+			((gbx_register.Flags & 0b01000000) != 0) ? "1" : "0",
+			((gbx_register.Flags & 0b00100000) != 0) ? "1" : "0",
+			((gbx_register.Flags & 0b00010000) != 0) ? "1" : "0");
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 390, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "SP = 0x%04X", gbx_register.SP);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 420, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "PC = 0x%04X", gbx_register.PC);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), 20, 445, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+
+		//==============================================================================
+
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T("ãƒ‘ãƒ¬ãƒƒãƒˆ"), WINDOW_WIDTH / 2, 100, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+
+		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
+			for (int j = 0; j < 4; j++) {
+				DWORD color = get_bg_window_palette(j);
+
+				MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + (j * 30), 140, (WINDOW_WIDTH / 2) + (j * 30) + 30, 140 + 30, GET_COLOR_ALPHA255(0, 0, 0));
+				MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + (j * 30) + 1, 140 + 1, (WINDOW_WIDTH / 2) + (j * 30) + 30 - 1, 140 + 30 - 1, GET_COLOR_ALPHA255(255, 255, 255));
+				MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + (j * 30) + 2, 140 + 2, (WINDOW_WIDTH / 2) + (j * 30) + 30 - 2, 140 + 30 - 2, color);
+			}
+
+			for (int i = 0; i < 2; i++) {
+				for (int j = 0; j < 4; j++) {
+					DWORD color = get_sprite_palette(j, (i == 0) ? false : true);
+
+					MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + 130 + (j * 30), 140 + (i * 30), (WINDOW_WIDTH / 2) + 130 + (j * 30) + 30, 140 + (i * 30) + 30, GET_COLOR_ALPHA255(0, 0, 0));
+					MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + 130 + (j * 30) + 1, 140 + (i * 30) + 1, (WINDOW_WIDTH / 2) + 130 + (j * 30) + 30 - 1, 140 + (i * 30) + 30 - 1, GET_COLOR_ALPHA255(255, 255, 255));
+					MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + 130 + (j * 30) + 2, 140 + (i * 30) + 2, (WINDOW_WIDTH / 2) + 130 + (j * 30) + 30 - 2, 140 + (i * 30) + 30 - 2, color);
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < 8; i++) {
+				for (int j = 0; j < 4; j++) {
+					uint16_t color_2byte = get_bg_window_palette__cgb(i, j);
+
+					uint8_t r_5bit = color_2byte & 0b11111;
+					uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+					uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+					DWORD color;
+					color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+
+					//M_debug_printf("[%d][%d] r = 0x%02x, g = 0x%02x, b = 0x%02x, COLOR = 0x%08x\n", j, i, r_5bit, g_5bit, b_5bit, color);
+
+					MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + (j * 30), 140 + (i * 30), (WINDOW_WIDTH / 2) + (j * 30) + 30, 140 + (i * 30) + 30, GET_COLOR_ALPHA255(0, 0, 0));
+					MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + (j * 30) + 1, 140 + (i * 30) + 1, (WINDOW_WIDTH / 2) + (j * 30) + 30 - 1, 140 + (i * 30) + 30 - 1, GET_COLOR_ALPHA255(255, 255, 255));
+					MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + (j * 30) + 2, 140 + (i * 30) + 2, (WINDOW_WIDTH / 2) + (j * 30) + 30 - 2, 140 + (i * 30) + 30 - 2, color);
+				}
+			}
+
+			for (int i = 0; i < 8; i++) {
+				for (int j = 0; j < 4; j++) {
+					uint16_t color_2byte = get_sprite_palette__cgb(i, j);
+
+					uint8_t r_5bit = color_2byte & 0b11111;
+					uint8_t g_5bit = (color_2byte >> 5) & 0b11111;
+					uint8_t b_5bit = (color_2byte >> 10) & 0b11111;
+
+					DWORD color;
+					color = GET_5BIT_COLOR_ALPHA255(r_5bit, g_5bit, b_5bit);
+
+					//M_debug_printf("[%d][%d] r = 0x%02x, g = 0x%02x, b = 0x%02x, COLOR = 0x%08x\n", j, i, r_5bit, g_5bit, b_5bit, color);
+
+					MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + 130 + (j * 30), 140 + (i * 30), (WINDOW_WIDTH / 2) + 130 + (j * 30) + 30, 140 + (i * 30) + 30, GET_COLOR_ALPHA255(0, 0, 0));
+					MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + 130 + (j * 30) + 1, 140 + (i * 30) + 1, (WINDOW_WIDTH / 2) + 130 + (j * 30) + 30 - 1, 140 + (i * 30) + 30 - 1, GET_COLOR_ALPHA255(255, 255, 255));
+					MyDirectXDraw::draw_box_leftup(myDirectXSystem, (WINDOW_WIDTH / 2) + 130 + (j * 30) + 2, 140 + (i * 30) + 2, (WINDOW_WIDTH / 2) + 130 + (j * 30) + 30 - 2, 140 + (i * 30) + 30 - 2, color);
+				}
+			}
+		}
+
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T("å‰²ã‚Šè¾¼ã¿"), (WINDOW_WIDTH / 2) - 30, 430, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		uint8_t IE_value = gbx_ram.RAM[0xFFFF];
+		uint8_t IF_value = gbx_ram.RAM[0xFF0F];
+		sprintf_s(str, "IME = [%s]", (IME_Flag == true) ? "1" : "0");
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), (WINDOW_WIDTH / 2) - 30, 460, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "IE = 0x%02X", IE_value);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), (WINDOW_WIDTH / 2) - 30, 485, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+		sprintf_s(str, "IF = 0x%02X", IF_value);
+		debug_info_font_1->draw_process_base_leftup_with_edge(_T(str), (WINDOW_WIDTH / 2) - 30, 510, GET_COLOR_ALPHA255(255, 255, 255), GET_COLOR_ALPHA255(0, 0, 0));
+	}
+
 public:
-	GameBoyColor(const char* rom_filename, Key* key) : key(key) {
+	GameBoyColor(MyDirectXSystem* myDirectXSystem, const char* rom_filename, Key* key) : myDirectXSystem(myDirectXSystem), key(key) {
+		LOGFONT lf;
+
 		memset(gbx_ram.RAM, 0, RAM_SIZE);
 
 		if (read_rom_file(rom_filename) != 0) {
@@ -6902,7 +7120,15 @@ public:
 
 		Main::ROM_loaded_flag = true;
 
+		apu = new APU();
+
 		booting_flag = true;
+
+
+		int font_size = 22;
+		lf = { font_size, 0, 0, 0, 0, 0, 0, 0, SHIFTJIS_CHARSET, OUT_TT_ONLY_PRECIS,
+		CLIP_DEFAULT_PRECIS, PROOF_QUALITY, FIXED_PITCH | FF_MODERN, _T("ï¼­ï¼³ ï¼°ã‚´ã‚·ãƒƒã‚¯") };
+		debug_info_font_1 = new MyDirectXString(myDirectXSystem, &lf);
 
 
 		M_debug_printf("################################\n");
@@ -6916,7 +7142,7 @@ public:
 		M_debug_printf("GameBoyColor::GameBoyColor() Failed......\n");
 		M_debug_printf("################################\n");
 
-		MessageBox(NULL, _T("ROM‚Ì‰Šú‰»‚ÌÛ‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½"), _T("ERROR"), MB_OK | MB_ICONERROR);
+		MessageBox(NULL, _T("ROMã®åˆæœŸåŒ–ã®éš›ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸ"), _T("ERROR"), MB_OK | MB_ICONERROR);
 
 		FATAL_ERROR_FLAG = true;
 	}
@@ -6927,13 +7153,17 @@ public:
 
 		free(ROM_bank_data_ptr);
 		free(SRAM_bank_data_ptr);
+
+		delete apu;
+
+		delete debug_info_font_1;
 	}
 
 	bool get_FATAL_ERROR_FLAG() {
 		return FATAL_ERROR_FLAG;
 	}
 
-	void execute_all(MyDirectXSystem* myDirectXSystem) {
+	void execute_all() {
 		memset(backbuffer_isnobackgroundcolor_mask, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
 		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
 			memset(LCDC_0bit_master_flag__cgb, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
@@ -6946,9 +7176,9 @@ public:
 		else {
 			init_sprite_info_list__cgb();
 		}
-		memset(_8bit_sprite_screen_data_160x144, 0xFF, GBX_WIDTH * GBX_HEIGHT);//ƒXƒvƒ‰ƒCƒg‚ÌƒoƒbƒNƒoƒbƒtƒ@‚ğ‘S•”“§–¾‚É‚·‚é
+		memset(_8bit_sprite_screen_data_160x144, 0xFF, GBX_WIDTH * GBX_HEIGHT);//ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆã®ãƒãƒƒã‚¯ãƒãƒƒãƒ•ã‚¡ã‚’å…¨éƒ¨é€æ˜ã«ã™ã‚‹
 
-		memset(_8bit_window_screen_data_160x144, 0xFF, GBX_WIDTH * GBX_HEIGHT);//ƒEƒCƒ“ƒhƒE‚ÌƒoƒbƒNƒoƒbƒtƒ@‚ğ‘S•”“§–¾‚É‚·‚é
+		memset(_8bit_window_screen_data_160x144, 0xFF, GBX_WIDTH * GBX_HEIGHT);//ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ã®ãƒãƒƒã‚¯ãƒãƒƒãƒ•ã‚¡ã‚’å…¨éƒ¨é€æ˜ã«ã™ã‚‹
 		window_backbuffer_draw_internal_flag_x = false;
 		window_backbuffer_draw_internal_counter_y = 0;
 
@@ -6962,7 +7192,7 @@ public:
 
 			uint8_t instruction_code;
 
-			//if (booting_flag == true) {//ƒu[ƒgƒƒ€Às’†‚Ì
+			//if (booting_flag == true) {//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ å®Ÿè¡Œä¸­ã®æ™‚
 			//	if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
 			//		instruction_code = bootrom_256byte[gbx_register.PC];
 			//	}
@@ -6979,7 +7209,7 @@ public:
 			
 			//if (booting_flag == false) {
 			//		M_debug_printf("=========================================================\n");
-			//		M_debug_printf("PC:0x%04x [–½—ß:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+			//		M_debug_printf("PC:0x%04x [å‘½ä»¤:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
 			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
 			//		//M_debug_printf("IME_Flag = %s, IE = 0x%02x, IF = 0x%02x\n", (IME_Flag == true) ? "true" : "false", gbx_ram.RAM[0xFFFF], gbx_ram.RAM[0xFF0F]);
 			//}
@@ -6987,7 +7217,7 @@ public:
 			//if (key->get_input_state__normal__(INPUT_MY_ID_SELECT) != 0) {
 			//	if (booting_flag == false) {
 			//		M_debug_printf("=========================================================\n");
-			//		M_debug_printf("PC:0x%04x [–½—ß:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+			//		M_debug_printf("PC:0x%04x [å‘½ä»¤:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
 			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
 			//		//M_debug_printf("IME_Flag = %s, IE = 0x%02x, IF = 0x%02x\n", (IME_Flag == true) ? "true" : "false", gbx_ram.RAM[0xFFFF], gbx_ram.RAM[0xFF0F]);
 			//	}
@@ -7000,26 +7230,26 @@ public:
 			(this->*(cpu_instruction_table[instruction_code]))();
 
 			if (booting_flag == true && gbx_register.PC == 0x100) {
-				booting_flag = false;//ƒu[ƒgƒƒ€I—¹
+				booting_flag = false;//ãƒ–ãƒ¼ãƒˆãƒ­ãƒ çµ‚äº†
 
-				//M_debug_printf("PC:0x%04x [–½—ß:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+				//M_debug_printf("PC:0x%04x [å‘½ä»¤:0x%02x] A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
 				//	gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
 				//system("pause");
 			}
 
 			uint32_t instruction_machine_cycle = instruction_machine_cycle_table[instruction_code];
 			if (instruction_machine_cycle == 0xDEADBEEF) {
-				M_debug_printf("ERROR –¢’è‹`‚Ì–½—ß‚ğÀs‚µ‚Ü‚µ‚½[PC:0x%04x, ƒR[ƒh:0x%02x]\n", gbx_register.PC, instruction_code);
-				MessageBox(NULL, _T("–¢’è‹`‚Ì–½—ß‚ğÀs‚µ‚Ü‚µ‚½"), _T("î•ñ"), MB_ICONERROR);
+				M_debug_printf("ERROR æœªå®šç¾©ã®å‘½ä»¤ã‚’å®Ÿè¡Œã—ã¾ã—ãŸ[PC:0x%04x, ã‚³ãƒ¼ãƒ‰:0x%02x]\n", gbx_register.PC, instruction_code);
+				MessageBox(NULL, _T("æœªå®šç¾©ã®å‘½ä»¤ã‚’å®Ÿè¡Œã—ã¾ã—ãŸ"), _T("æƒ…å ±"), MB_ICONERROR);
 
 				FATAL_ERROR_FLAG = true;
 			}
 
-			cpu_machine_cycle += instruction_machine_cycle;//Š„‚è‚İ‚µ‚½ê‡‚Í‚»‚ÌƒTƒCƒNƒ‹”‚à‰ÁZ‚µ‚Ä‚ ‚é
+			cpu_machine_cycle += instruction_machine_cycle;//å‰²ã‚Šè¾¼ã¿ã—ãŸå ´åˆã¯ãã®ã‚µã‚¤ã‚¯ãƒ«æ•°ã‚‚åŠ ç®—ã—ã¦ã‚ã‚‹
 
 			total_cpu_machine_cycle__div += cpu_machine_cycle;
 			while (total_cpu_machine_cycle__div >= ((CPU_FREQ / 16384) / 4)) {
-				((uint8_t)(gbx_ram.RAM[0xFF04]))++;//DIVƒŒƒWƒXƒ^‚ğ‰ÁZ‚·‚é
+				((uint8_t)(gbx_ram.RAM[0xFF04]))++;//DIVãƒ¬ã‚¸ã‚¹ã‚¿ã‚’åŠ ç®—ã™ã‚‹
 
 				total_cpu_machine_cycle__div -= ((CPU_FREQ / 16384) / 4);
 			}
@@ -7028,8 +7258,8 @@ public:
 				const uint64_t timer_count_freq = get_timer_count_freq();
 				total_cpu_machine_cycle__tima += cpu_machine_cycle;
 				while (total_cpu_machine_cycle__tima >= (timer_count_freq / 4)) {
-					((uint8_t)(gbx_ram.RAM[0xFF05]))++;//TimerƒJƒEƒ“ƒ^ƒŒƒWƒXƒ^‚ğ‰ÁZ‚·‚é
-					if (gbx_ram.RAM[0xFF05] == 0x00) {//TimerƒJƒEƒ“ƒ^ƒŒƒWƒXƒ^‚ªƒI[ƒo[ƒtƒ[‚µ‚½‚Æ‚«
+					((uint8_t)(gbx_ram.RAM[0xFF05]))++;//Timerã‚«ã‚¦ãƒ³ã‚¿ãƒ¬ã‚¸ã‚¹ã‚¿ã‚’åŠ ç®—ã™ã‚‹
+					if (gbx_ram.RAM[0xFF05] == 0x00) {//Timerã‚«ã‚¦ãƒ³ã‚¿ãƒ¬ã‚¸ã‚¹ã‚¿ãŒã‚ªãƒ¼ãƒãƒ¼ãƒ•ãƒ­ãƒ¼ã—ãŸã¨ã
 						gbx_ram.RAM[0xFF05] = gbx_ram.RAM[0xFF06];
 
 						gbx_ram.RAM[0xFF0F] |= 0b00000100;
@@ -7044,7 +7274,7 @@ public:
 			}
 			else {
 				if (CURRENT_CPU_Clock_2x_Flag__CGB == true) {
-					execute_ppu_process(((cpu_machine_cycle * 4) / 2) + c_cycle_mod);//”{‘¬ƒ‚[ƒh‚Ì‚Æ‚«
+					execute_ppu_process(((cpu_machine_cycle * 4) / 2) + c_cycle_mod);//å€é€Ÿãƒ¢ãƒ¼ãƒ‰ã®ã¨ã
 				}
 				else {
 					execute_ppu_process(cpu_machine_cycle * 4 + c_cycle_mod);
@@ -7057,11 +7287,11 @@ public:
 
 			if (IME_Flag == true) {
 				if (interrupt_process() == true) {
-					cpu_machine_cycle += 5;//Š„‚è‚İ‚É5MƒTƒCƒNƒ‹‚©‚©‚é
+					cpu_machine_cycle += 5;//å‰²ã‚Šè¾¼ã¿ã«5Mã‚µã‚¤ã‚¯ãƒ«ã‹ã‹ã‚‹
 				}
 			}
 
-			if (ppu_line_y >= 154) {//VblankI—¹
+			if (ppu_line_y >= 154) {//Vblankçµ‚äº†
 				create_all_256x256_backbuffer();
 				if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
 					draw_screenbuffer_sprite_data();
@@ -7074,34 +7304,38 @@ public:
 			}
 		}
 
-		if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCD—LŒøƒtƒ‰ƒO‚ª—LŒø‚Ì‚Æ‚«
+		if ((gbx_ram.RAM[0xFF40] & 0b10000000) != 0) {//LCDæœ‰åŠ¹ãƒ•ãƒ©ã‚°ãŒæœ‰åŠ¹ã®ã¨ã
 			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
-				draw_screen_bg(myDirectXSystem);
-				draw_screen_window(myDirectXSystem);
-				draw_screen_sprite(myDirectXSystem);
+				draw_screen_bg();
+				draw_screen_window();
+				draw_screen_sprite();
 			}
 			else {
-				draw_screen_bg__cgb(myDirectXSystem);
-				draw_screen_window__cgb(myDirectXSystem);
-				draw_screen_sprite__cgb(myDirectXSystem);
+				draw_screen_bg__cgb();
+				draw_screen_window__cgb();
+				draw_screen_sprite__cgb();
 			}
 		}
-		else {//LCD—LŒøƒtƒ‰ƒO‚ª–³Œø‚Ì‚Æ‚«
-			draw_screen_LCD_off(myDirectXSystem);
+		else {//LCDæœ‰åŠ¹ãƒ•ãƒ©ã‚°ãŒç„¡åŠ¹ã®ã¨ã
+			draw_screen_LCD_off();
+		}
+
+		if (Main::Show_DEBUG_INFO_Flag == true) {
+			draw_debugmode_info();
 		}
 
 #ifdef GAMEBOYCOLOR_EMULATOR_DEBUG
-		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 0);
-		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 1);
-		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 2);
-		//_debug_draw_screen_256x256_backbuffer(myDirectXSystem, 3);
+		//_debug_draw_screen_256x256_backbuffer(0);
+		//_debug_draw_screen_256x256_backbuffer(1);
+		//_debug_draw_screen_256x256_backbuffer(2);
+		//_debug_draw_screen_256x256_backbuffer(3);
 
-		//_debug_draw_screen_256x256_backbuffer__cgb(myDirectXSystem, 0);
-		//_debug_draw_screen_256x256_backbuffer__cgb(myDirectXSystem, 1);
-		//_debug_draw_screen_256x256_backbuffer__cgb(myDirectXSystem, 2);
-		//_debug_draw_screen_256x256_backbuffer__cgb(myDirectXSystem, 3);
+		//_debug_draw_screen_256x256_backbuffer__cgb(0);
+		//_debug_draw_screen_256x256_backbuffer__cgb(1);
+		//_debug_draw_screen_256x256_backbuffer__cgb(2);
+		//_debug_draw_screen_256x256_backbuffer__cgb(3);
 
-		//__debug_draw_all_palette__cgb(myDirectXSystem);
+		//__debug_draw_all_palette__cgb();
 #endif
 
 		//M_debug_printf("End 1 frame...\n");
@@ -7109,6 +7343,8 @@ public:
 		//if (booting_flag == false) {
 		//	system("pause");
 		//}
+
+		apu->execute_all_channel();
 
 	}
 };

@@ -8,7 +8,7 @@
 #include "resource1.h"
 
 #include "SystemDefine.h"
-#include "MaterialArchiveFile.h"
+//#include "MaterialArchiveFile.h"
 #include "MyDirectXDraw.h"
 #include "MyDirectXFont.h"
 #include "MyDirectXSystem.h"
@@ -34,8 +34,11 @@ uint32_t Main::PGM_size = 0;
 uint32_t Main::SRAM_size = 0;
 Main::GAME_HARDWARE_TYPE Main::game_hardware_type = Main::GAME_HARDWARE_TYPE::GAMEBOY;
 
+bool Main::Sound_Mute_Flag = false;
+
 bool Main::Show_FPS_Flag = true;
 
+bool Main::Show_DEBUG_INFO_Flag = false;
 
 
 //int frame_process_type = 0;
@@ -235,7 +238,7 @@ int _stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 	}
 
 
-	MaterialArchiveFile::Init();
+	//MaterialArchiveFile::Init();
 
 
 	D3DPRESENT_PARAMETERS g_D3DParam;
@@ -401,7 +404,7 @@ int _stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 
 	CRC::End();
 
-	MaterialArchiveFile::End();
+	//MaterialArchiveFile::End();
 
 #ifdef GAMEBOYCOLOR_EMULATOR_DEBUG
 	//if (full_result == IDNO) {
@@ -459,6 +462,14 @@ LRESULT CALLBACK WinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_param)
 		menuInfo.fMask = MIIM_STATE;
 		menuInfo.fState = MFS_CHECKED;
 		SetMenuItemInfo(hmenu, ID_40008, FALSE, &menuInfo);
+
+		menuInfo.fMask = MIIM_STATE;
+		menuInfo.fState = MFS_UNCHECKED;
+		SetMenuItemInfo(hmenu, ID_40009, FALSE, &menuInfo);
+
+		menuInfo.fMask = MIIM_STATE;
+		menuInfo.fState = MFS_UNCHECKED;
+		SetMenuItemInfo(hmenu, ID_40011, FALSE, &menuInfo);
 
 		return 0;
 	case WM_COMMAND:
@@ -593,6 +604,30 @@ LRESULT CALLBACK WinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_param)
 				menuInfo.fState = MFS_CHECKED;
 			}
 			SetMenuItemInfo(hmenu, ID_40008, FALSE, &menuInfo);
+
+			return 0;
+		case ID_40009:
+			Main::Show_DEBUG_INFO_Flag = !Main::Show_DEBUG_INFO_Flag;
+
+			if (Main::Show_DEBUG_INFO_Flag == false) {
+				menuInfo.fState = MFS_UNCHECKED;
+			}
+			else {
+				menuInfo.fState = MFS_CHECKED;
+			}
+			SetMenuItemInfo(hmenu, ID_40009, FALSE, &menuInfo);
+
+			return 0;
+		case ID_40011:
+			Main::Sound_Mute_Flag = !Main::Sound_Mute_Flag;
+
+			if (Main::Sound_Mute_Flag == false) {
+				menuInfo.fState = MFS_UNCHECKED;
+			}
+			else {
+				menuInfo.fState = MFS_CHECKED;
+			}
+			SetMenuItemInfo(hmenu, ID_40011, FALSE, &menuInfo);
 
 			return 0;
 		case ID_40007:

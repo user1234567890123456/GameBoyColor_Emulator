@@ -19,7 +19,7 @@ void GameManager::execute_game_process()
 		delete gbx;
 
 		//M_debug_printf("Main::ROMFilePath = %s\n", Main::ROMFilePath);
-		gbx = new GameBoyColor(Main::ROMFilePath, key);
+		gbx = new GameBoyColor(myDirectXSystem, Main::ROMFilePath, key);
 
 		Main::ready_read_ROM_flag = false;
 	}
@@ -35,7 +35,7 @@ void GameManager::execute_game_process()
 
 	if (gbx != nullptr) {
 		if (gbx->get_FATAL_ERROR_FLAG() == false) {
-			gbx->execute_all(myDirectXSystem);
+			gbx->execute_all();
 		}
 	}
 	else {

@@ -25,5 +25,13 @@ public:
 	static uint32_t SRAM_size;
 	static GAME_HARDWARE_TYPE game_hardware_type;
 
+
+
+	static bool Sound_Mute_Flag;
+
+
 	static bool Show_FPS_Flag;
+
+
+	static bool Show_DEBUG_INFO_Flag;
 };

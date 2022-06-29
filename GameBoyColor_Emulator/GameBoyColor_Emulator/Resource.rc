@@ -57,12 +57,34 @@ BEGIN
         MENUITEM "ROMファイルを読み込む",                ID_40003
         MENUITEM "ROM情報",                       ID_40006
     END
+    POPUP "サウンド"
+    BEGIN
+        MENUITEM "ミュートにする",                     ID_40011
+    END
     POPUP "設定"
     BEGIN
         MENUITEM "FPSを表示する",                    ID_40008
         MENUITEM "ゲームパッドの更新",                   ID_40007
     END
+    POPUP "デバッグ"
+    BEGIN
+        MENUITEM "デバッグ情報を表示する",                 ID_40009
+    END
+    POPUP "チート"
+    BEGIN
+        MENUITEM "チートコードの入力",                   ID_40010
+    END
 END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BINARY
+//
+
+BOOTROM_BIN             BINARY                  "bootrom/bootrom_256byte.bin"
+
+BOOTROM_CGB_BIN         BINARY                  "bootrom/bootrom_cgb.bin"
 
 #endif    // 日本語 (日本) resources
 /////////////////////////////////////////////////////////////////////////////
@@ -79,7 +101,3 @@ END
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 
-
-
-BOOTROM_BIN	BINARY		"bootrom/bootrom_256byte.bin"
-BOOTROM_CGB_BIN	BINARY		"bootrom/bootrom_cgb.bin"

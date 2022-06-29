@@ -13,7 +13,8 @@
 #include "MyDirectXSystem.h"
 #include "MyDirectXFont.h"
 #include "MyDirectXDraw.h"
-#include "FpsFont.h"
+//#include "FpsFont.h"
+#include "MyDirectXString.h"
 
 #define FPS 60
 
@@ -22,7 +23,8 @@ class Fps
 private:
 	//LPD3DXSPRITE sprite;
 
-	MyFont *fps_number;
+	//MyFont *fps_number;
+	MyDirectXString* fps_font;
 
 	double fps = 0.0;
 	int frame = 0;

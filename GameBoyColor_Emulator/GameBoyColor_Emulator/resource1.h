@@ -10,6 +10,9 @@
 #define ID_40006                        40006
 #define ID_40007                        40007
 #define ID_40008                        40008
+#define ID_40009                        40009
+#define ID_40010                        40010
+#define ID_40011                        40011
 
 // Next default values for new objects
 // 
