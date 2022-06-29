@@ -94,7 +94,7 @@ private:
 
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
 			float length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * 3.1415926535f / (length / 2)) >= 0.0f) {
+			if (sinf(i * 3.1415926535f / (length / 2)) >= 0.75f) {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
@@ -117,7 +117,7 @@ private:
 
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
 			float length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * 3.1415926535f / (length / 2)) >= 0.75f) {
+			if (sinf(i * 3.1415926535f / (length / 2)) >= 0.5f) {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
