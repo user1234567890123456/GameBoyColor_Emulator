@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include <math.h>
+
 #include <xaudio2.h>
 #include <mmsystem.h>
 #include <mutex>
@@ -10,6 +12,8 @@
 #include "DebugUtility.h"
 
 using namespace std;
+
+#define CPU_FREQ_D 4194304.0//CPUの周波数(hz)
 
 class Channel
 {
@@ -22,6 +26,16 @@ public:
 	};
 
 private:
+	const double SWEEP_INTERVAL_TIME_LIST[7] = {
+		7.8 / 1000.0,
+		15.6 / 1000.0,
+		23.4 / 1000.0,
+		31.3 / 1000.0,
+		39.1 / 1000.0,
+		46.9 / 1000.0,
+		54.7 / 1000.0,
+	};
+
 	bool sound_enable_flag = false;
 
 	CH_TYPE ch_type;
@@ -34,6 +48,8 @@ private:
 	VoiceCallBack* callback;
 
 	mutex mtx;
+
+	float freq_f;
 
 	bool isPlaying = false;
 	bool stop_flag = false;
@@ -199,6 +215,9 @@ public:
 
 	//====================================================
 
+	double CH1_sweep_counter = 0.0;
+	float CH1_sweep_freq_f;
+
 	double CH1_length_counter = 0.0;
 
 	double CH1_envelope_counter = 0.0;
@@ -304,59 +323,117 @@ public:
 		delete callback;
 	}
 
+	void update(uint64_t c_cycle) {
+		if (ch_type == CH_TYPE::CH1) {
+			const uint8_t sweep_interval_3bit = ((CH1__0xFF10 >> 4) & 0b111);
+			if (sweep_interval_3bit != 0) {//スイープする場合
+				const uint8_t SWEEP_SHIFT_VALUE = (CH1__0xFF10 & 0b111);
+				const double SWEEP_SPEED = SWEEP_INTERVAL_TIME_LIST[sweep_interval_3bit - 1];
+				CH1_sweep_counter += (1.0 / CPU_FREQ_D) * c_cycle;
+				while (CH1_sweep_counter >= SWEEP_SPEED) {
+					CH1_sweep_counter -= SWEEP_SPEED;
+
+					if ((CH1__0xFF10 & 0b1000) == 0) {//周波数が大きくなるとき
+						//CH1_sweep_freq_f = CH1_sweep_freq_f + (CH1_sweep_freq_f / powf(2, (float)SWEEP_SHIFT_VALUE));
+						CH1_sweep_freq_f = CH1_sweep_freq_f + (CH1_sweep_freq_f / (float)(1 << SWEEP_SHIFT_VALUE));
+					}
+					else {//周波数が小さくなるとき
+						//CH1_sweep_freq_f = CH1_sweep_freq_f - (CH1_sweep_freq_f / powf(2, (float)SWEEP_SHIFT_VALUE));
+						CH1_sweep_freq_f = CH1_sweep_freq_f - (CH1_sweep_freq_f / (float)(1 << SWEEP_SHIFT_VALUE));
+					}
+				}
+
+				freq_f = CH1_sweep_freq_f;
+			}
+			else {//スイープしない場合
+				uint32_t freq = (CH1__0xFF13 | ((CH1__0xFF14 & 0b00000111) << 8));
+				freq_f = 131072.0f / (2048.0f - (float)freq);
+			}
+
+			//if (sound_enable_flag == true) {
+			if ((CH1__0xFF12 & 0b00000111) != 0) {
+				const uint8_t TMP_SPEED = (CH1__0xFF12 & 0b111);
+				const double ENVELOPE_SPEED = (double)TMP_SPEED * (1.0 / 64.0);
+				CH1_envelope_counter += (1.0 / CPU_FREQ_D) * c_cycle;
+				while (CH1_envelope_counter >= ENVELOPE_SPEED) {
+					CH1_envelope_counter -= ENVELOPE_SPEED;
+
+					if ((CH1__0xFF12 & 0b00001000) != 0) {//大きくなっていく
+						if (CH1_envelope_volume < 0x0F) {
+							CH1_envelope_volume++;
+						}
+					}
+					else {//小さくなっていく
+						if (CH1_envelope_volume > 0) {
+							CH1_envelope_volume--;
+						}
+					}
+				}
+
+			}
+
+
+			if ((CH1__0xFF14 & 0b01000000) != 0) {//長さカウンタ有効フラグが有効なとき
+				const uint8_t TMP_LENGTH = (CH1__0xFF11 & 0b00111111);
+				const double SOUND_LENGTH = (64.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
+				CH1_length_counter += (1.0 / CPU_FREQ_D) * c_cycle;
+				if (CH1_length_counter >= SOUND_LENGTH) {
+					sound_enable_flag = false;
+				}
+			}
+			//}
+
+		}
+		else if (ch_type == CH_TYPE::CH2) {
+			uint32_t freq = (CH2__0xFF18 | ((CH2__0xFF19 & 0b00000111) << 8));
+			freq_f = 131072.0f / (2048.0f - (float)freq);
+
+			//if (sound_enable_flag == true) {
+			if ((CH2__0xFF17 & 0b00000111) != 0) {
+				const uint8_t TMP_SPEED = (CH2__0xFF17 & 0b111);
+				const double ENVELOPE_SPEED = (double)TMP_SPEED * (1.0 / 64.0);
+				CH2_envelope_counter += (1.0 / CPU_FREQ_D) * c_cycle;
+				while (CH2_envelope_counter >= ENVELOPE_SPEED) {
+					CH2_envelope_counter -= ENVELOPE_SPEED;
+
+					if ((CH2__0xFF17 & 0b00001000) != 0) {//大きくなっていく
+						if (CH2_envelope_volume < 0x0F) {
+							CH2_envelope_volume++;
+						}
+					}
+					else {//小さくなっていく
+						if (CH2_envelope_volume > 0) {
+							CH2_envelope_volume--;
+						}
+					}
+				}
+
+			}
+
+
+			if ((CH2__0xFF19 & 0b01000000) != 0) {//長さカウンタ有効フラグが有効なとき
+				const uint8_t TMP_LENGTH = (CH2__0xFF16 & 0b00111111);
+				const double SOUND_LENGTH = (64.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
+				CH2_length_counter += (1.0 / CPU_FREQ_D) * c_cycle;
+				if (CH2_length_counter >= SOUND_LENGTH) {
+					sound_enable_flag = false;
+				}
+			}
+			//}
+
+		}
+		else if (ch_type == CH_TYPE::CH3) {
+		}
+		else {//CH4
+		}
+	}
+
 	void execute() {
 		//M_debug_printf("Channel::execute()\n");
 
 		//create_wave_data_1(440.0f);
 
 		if (ch_type == CH_TYPE::CH1) {
-			uint32_t freq = (CH1__0xFF13 | ((CH1__0xFF14 & 0b00000111) << 8));
-			float freq_f = 131072.0f / (2048.0f - (float)freq);
-
-			if (sound_enable_flag == true) {
-				if ((CH1__0xFF12 & 0b00000111) != 0) {
-					const uint8_t TMP_SPEED = (CH1__0xFF12 & 0b111);
-					const double ENVELOPE_SPEED = (double)TMP_SPEED * (1.0 / 64.0);
-					CH1_envelope_counter += (1.0 / 60.0);
-					while (CH1_envelope_counter >= ENVELOPE_SPEED) {
-						CH1_envelope_counter -= ENVELOPE_SPEED;
-
-						if ((CH1__0xFF12 & 0b00001000) != 0) {//大きくなっていく
-							if (CH1_envelope_volume < 0x0F) {
-								CH1_envelope_volume++;
-							}
-						}
-						else {//小さくなっていく
-							if (CH1_envelope_volume > 0) {
-								CH1_envelope_volume--;
-							}
-						}
-					}
-
-				}
-
-
-				if ((CH1__0xFF14 & 0b01000000) != 0) {//長さカウンタ有効フラグが有効なとき
-					const uint8_t TMP_LENGTH = (CH1__0xFF11 & 0b00111111);
-					const double SOUND_LENGTH = (64.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
-					CH1_length_counter += (1.0 / 60.0);
-					if (CH1_length_counter >= SOUND_LENGTH) {
-						sound_enable_flag = false;
-					}
-				}
-			}
-
-			//リスタート
-			if ((CH1__0xFF14 & 0b10000000) != 0) {//restart flag
-				if ((CH1__0xFF11 & 0b00111111) == 0) {
-					CH1_envelope_volume = ((CH1__0xFF12 >> 4) & 0b1111);
-
-					CH1_length_counter = 0;
-
-					sound_enable_flag = true;
-				}
-			}
-
 			if (sound_enable_flag == true) {
 				uint8_t duty_type = ((CH1__0xFF11 & 0b11000000) >> 6);
 				if (duty_type == 0b00) {
@@ -377,54 +454,6 @@ public:
 			}
 		}
 		else if (ch_type == CH_TYPE::CH2) {
-			uint32_t freq = (CH2__0xFF18 | ((CH2__0xFF19 & 0b00000111) << 8));
-			float freq_f = 131072.0f / (2048.0f - (float)freq);
-			
-			if (sound_enable_flag == true) {
-				if ((CH2__0xFF17 & 0b00000111) != 0) {
-					const uint8_t TMP_SPEED = (CH2__0xFF17 & 0b111);
-					const double ENVELOPE_SPEED = (double)TMP_SPEED * (1.0 / 64.0);
-					CH2_envelope_counter += (1.0 / 60.0);
-					while (CH2_envelope_counter >= ENVELOPE_SPEED) {
-						CH2_envelope_counter -= ENVELOPE_SPEED;
-
-						if ((CH2__0xFF17 & 0b00001000) != 0) {//大きくなっていく
-							if (CH2_envelope_volume < 0x0F) {
-								CH2_envelope_volume++;
-							}
-						}
-						else {//小さくなっていく
-							if (CH2_envelope_volume > 0) {
-								CH2_envelope_volume--;
-							}
-						}
-					}
-
-				}
-
-
-
-				if ((CH2__0xFF19 & 0b01000000) != 0) {//長さカウンタ有効フラグが有効なとき
-					const uint8_t TMP_LENGTH = (CH2__0xFF16 & 0b00111111);
-					const double SOUND_LENGTH = (64.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
-					CH2_length_counter += (1.0 / 60.0);
-					if (CH2_length_counter >= SOUND_LENGTH) {
-						sound_enable_flag = false;
-					}
-				}
-			}
-
-			//リスタート
-			if ((CH2__0xFF19 & 0b10000000) != 0) {//restart flag
-				if ((CH2__0xFF16 & 0b00111111) == 0) {
-					CH2_envelope_volume = ((CH2__0xFF17 >> 4) & 0b1111);
-
-					CH2_length_counter = 0;
-
-					sound_enable_flag = true;
-				}
-			}
-
 			if (sound_enable_flag == true) {
 				uint8_t duty_type = ((CH2__0xFF16 & 0b11000000) >> 6);
 				if (duty_type == 0b00) {
@@ -460,6 +489,17 @@ public:
 		//return false;
 		//return isPlaying;
 		return sound_enable_flag;
+	}
+
+	void set_sound_enable_flag(bool flag) {
+		sound_enable_flag = flag;
+	}
+
+	void init_CH1_sweep_freq_f() {
+		uint32_t freq = (CH1__0xFF13 | ((CH1__0xFF14 & 0b00000111) << 8));
+		freq_f = 131072.0f / (2048.0f - (float)freq);
+
+		CH1_sweep_freq_f = freq_f;
 	}
 
 };

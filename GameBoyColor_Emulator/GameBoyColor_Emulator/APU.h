@@ -72,6 +72,13 @@ public:
 		return ch4;
 	}
 
+	void update_all_channel(uint64_t c_cycle) {
+		ch1->update(c_cycle);
+		ch2->update(c_cycle);
+		ch3->update(c_cycle);
+		ch4->update(c_cycle);
+	}
+
 	void execute_all_channel() {
 		if (all_channel_enable_flag == true) {
 			ch1->execute();

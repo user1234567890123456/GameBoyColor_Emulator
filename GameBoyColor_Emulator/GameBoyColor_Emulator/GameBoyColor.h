@@ -1711,6 +1711,17 @@ private:
 		}
 		else if (write_address == 0xFF14) {
 			apu->get_channel_1()->CH1__0xFF14 = value;
+
+			if ((value & 0b10000000) != 0) {//リセットする場合
+				apu->get_channel_1()->CH1_envelope_volume = ((apu->get_channel_1()->CH1__0xFF12 >> 4) & 0b1111);
+				apu->get_channel_1()->CH1_envelope_counter = 0.0;
+
+				apu->get_channel_1()->CH1_length_counter = 0;
+
+				apu->get_channel_1()->set_sound_enable_flag(true);
+
+				apu->get_channel_1()->init_CH1_sweep_freq_f();
+			}
 		}
 		//=================================================================================
 		else if (write_address == 0xFF16) {
@@ -1724,6 +1735,15 @@ private:
 		}
 		else if (write_address == 0xFF19) {
 			apu->get_channel_2()->CH2__0xFF19 = value;
+
+			if ((value & 0b10000000) != 0) {//リセットする場合
+				apu->get_channel_2()->CH2_envelope_volume = ((apu->get_channel_2()->CH2__0xFF17 >> 4) & 0b1111);
+				apu->get_channel_2()->CH2_envelope_counter = 0.0;
+
+				apu->get_channel_2()->CH2_length_counter = 0;
+
+				apu->get_channel_2()->set_sound_enable_flag(true);
+			}
 		}
 		//=================================================================================
 		else if (write_address == 0xFF1A) {
@@ -7282,6 +7302,8 @@ public:
 			}
 
 			update_LCD_STAT();
+
+			apu->update_all_channel(cpu_machine_cycle * 4 + c_cycle_mod);
 
 			cpu_machine_cycle = 0;
 
