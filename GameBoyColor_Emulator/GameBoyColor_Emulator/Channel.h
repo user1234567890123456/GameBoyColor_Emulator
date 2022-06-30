@@ -91,8 +91,8 @@ private:
 
 
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float length = wave_format.nSamplesPerSec / freq;//”g’·
-			p[i] = (short)(SHRT_MAX * sinf(i * 3.1415926535f / (length / 2)));
+			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
+			p[i] = (short)(SHRT_MAX * sinf(i * D3DX_PI / (wave_1cycle_length / 2)));
 		}
 
 		current_data_ready_flag = true;
@@ -109,8 +109,8 @@ private:
 
 
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * 3.1415926535f / (length / 2)) >= 0.75f) {
+			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
+			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.75f) {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
@@ -132,8 +132,8 @@ private:
 
 
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * 3.1415926535f / (length / 2)) >= 0.5f) {
+			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
+			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.5f) {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
@@ -155,8 +155,8 @@ private:
 
 
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * 3.1415926535f / (length / 2)) >= 0.0f) {
+			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
+			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.0f) {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
@@ -178,13 +178,174 @@ private:
 
 
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * 3.1415926535f / (length / 2)) <= -0.5f) {
+			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
+			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) <= -0.5f) {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MIN;
 			}
+		}
+
+		current_data_ready_flag = true;
+
+		mtx.unlock();
+	}
+
+	const double WAVE_4BIT_DATA_TABLE[0x0F] = {
+		(double)SHRT_MIN,
+		(((double)SHRT_MIN) / 7.0) * 6.0,
+		(((double)SHRT_MIN) / 7.0) * 5.0,
+		(((double)SHRT_MIN) / 7.0) * 4.0,
+		(((double)SHRT_MIN) / 7.0) * 3.0,
+		(((double)SHRT_MIN) / 7.0) * 2.0,
+		(((double)SHRT_MIN) / 7.0),
+		0.0,
+		(((double)SHRT_MAX) / 7.0),
+		(((double)SHRT_MAX) / 7.0) * 2.0,
+		(((double)SHRT_MAX) / 7.0) * 3.0,
+		(((double)SHRT_MAX) / 7.0) * 4.0,
+		(((double)SHRT_MAX) / 7.0) * 5.0,
+		(((double)SHRT_MAX) / 7.0) * 6.0,
+		(double)SHRT_MAX,
+	};
+	//const short WAVE_4BIT_DATA_TABLE[0x0F] = {
+	//	0,
+	//	((SHRT_MAX) / 0x0E) * 1,
+	//	((SHRT_MAX) / 0x0E) * 2,
+	//	((SHRT_MAX) / 0x0E) * 3,
+	//	((SHRT_MAX) / 0x0E) * 4,
+	//	((SHRT_MAX) / 0x0E) * 5,
+	//	((SHRT_MAX) / 0x0E) * 6,
+	//	((SHRT_MAX) / 0x0E) * 7,
+	//	((SHRT_MAX) / 0x0E) * 8,
+	//	((SHRT_MAX) / 0x0E) * 9,
+	//	((SHRT_MAX) / 0x0E) * 0xA,
+	//	((SHRT_MAX) / 0x0E) * 0xB,
+	//	((SHRT_MAX) / 0x0E) * 0xC,
+	//	((SHRT_MAX) / 0x0E) * 0xD,
+	//	SHRT_MAX,
+	//};
+	//”gŒ`ƒƒ‚ƒŠ
+	void create_wave_data___waveform_memory(float freq, uint8_t volume_4bit) {
+		mtx.lock();
+	
+		short* p;
+		p = (short*)current_create_wave_data;
+	
+		uint8_t wave_data_4bitx32_list[32];
+		for (int i = 0; i < 16; i++) {
+			wave_data_4bitx32_list[i * 2] = ((CH3__0xFF30_0xFF3F[i] >> 4) & 0b1111);
+			wave_data_4bitx32_list[(i * 2) + 1] = (CH3__0xFF30_0xFF3F[i] & 0b1111);
+		}
+
+		for (size_t i = 0; i < (wave_data_size / 2); i++) {
+			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
+
+			float angle = (i * D3DX_PI / (wave_1cycle_length / 2));
+			while (angle >= (D3DX_PI * 2)) {
+				angle -= (D3DX_PI * 2);
+			}
+
+			uint32_t index;
+			if (angle < ((D3DX_PI * 2) / 32.0f)) {
+				index = 0;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 2.0f)) {
+				index = 1;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 3.0f)) {
+				index = 2;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 4.0f)) {
+				index = 3;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 5.0f)) {
+				index = 4;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 6.0f)) {
+				index = 5;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 7.0f)) {
+				index = 6;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 8.0f)) {
+				index = 7;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 9.0f)) {
+				index = 8;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 10.0f)) {
+				index = 9;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 11.0f)) {
+				index = 10;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 12.0f)) {
+				index = 11;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 13.0f)) {
+				index = 12;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 14.0f)) {
+				index = 13;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 15.0f)) {
+				index = 14;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 16.0f)) {
+				index = 15;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 17.0f)) {
+				index = 16;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 18.0f)) {
+				index = 17;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 19.0f)) {
+				index = 18;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 20.0f)) {
+				index = 19;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 21.0f)) {
+				index = 20;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 22.0f)) {
+				index = 21;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 23.0f)) {
+				index = 22;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 24.0f)) {
+				index = 23;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 25.0f)) {
+				index = 24;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 26.0f)) {
+				index = 25;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 27.0f)) {
+				index = 26;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 28.0f)) {
+				index = 27;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 29.0f)) {
+				index = 28;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 30.0f)) {
+				index = 29;
+			}
+			else if (angle < (((D3DX_PI * 2) / 32.0f) * 31.0f)) {
+				index = 30;
+			}
+			else {
+				index = 31;
+			}
+			
+			p[i] = ((double)volume_4bit / (double)0x0F) * (WAVE_4BIT_DATA_TABLE[wave_data_4bitx32_list[index]]);
 		}
 
 		current_data_ready_flag = true;
@@ -242,6 +403,8 @@ public:
 	uint8_t CH2__0xFF19 = 0;
 
 	//====================================================
+
+	double CH3_length_counter = 0.0;
 
 	uint8_t CH3__0xFF1A = 0;
 	uint8_t CH3__0xFF1B = 0;
@@ -423,6 +586,17 @@ public:
 
 		}
 		else if (ch_type == CH_TYPE::CH3) {
+			uint32_t freq = (CH3__0xFF1D | ((CH3__0xFF1E & 0b00000111) << 8));
+			freq_f = 65536.0f / (2048.0f - (float)freq);
+
+			if ((CH3__0xFF1E & 0b01000000) != 0) {//’·‚³ƒJƒEƒ“ƒ^—LŒøƒtƒ‰ƒO‚ª—LŒø‚È‚Æ‚«
+				const uint8_t TMP_LENGTH = CH3__0xFF1B;
+				const double SOUND_LENGTH = (256.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
+				CH3_length_counter += (1.0 / CPU_FREQ_D) * c_cycle;
+				if (CH3_length_counter >= SOUND_LENGTH) {
+					sound_enable_flag = false;
+				}
+			}
 		}
 		else {//CH4
 		}
@@ -452,6 +626,8 @@ public:
 			else {
 				create_wave_data___none();//–³‰¹
 			}
+
+			//create_wave_data___none();//–³‰¹
 		}
 		else if (ch_type == CH_TYPE::CH2) {
 			if (sound_enable_flag == true) {
@@ -472,12 +648,39 @@ public:
 			else {
 				create_wave_data___none();//–³‰¹
 			}
+
+			//create_wave_data___none();//–³‰¹
 		}
 		else if (ch_type == CH_TYPE::CH3) {
-			create_wave_data___none();//–³‰¹
+			if (sound_enable_flag == true) {
+				const uint8_t volume_2bit = ((CH3__0xFF1C >> 5) & 0b11);
+				uint8_t volume_4bit;
+				if (volume_2bit == 0b00) {
+					volume_4bit = 0b0000;
+				}
+				else if (volume_2bit == 0b01) {
+					volume_4bit = 0b1111;
+				}
+				else if (volume_2bit == 0b00) {
+					volume_4bit = 0b0111;
+				}
+				else {
+					volume_4bit = 0b0011;
+				}
+
+				create_wave_data___waveform_memory(freq_f, volume_4bit);
+			}
+			else {
+				create_wave_data___none();//–³‰¹
+			}
 		}
 		else {//CH4
-			create_wave_data___none();//–³‰¹
+			if (sound_enable_flag == true) {
+
+			}
+			else {
+				create_wave_data___none();//–³‰¹
+			}
 		}
 	}
 

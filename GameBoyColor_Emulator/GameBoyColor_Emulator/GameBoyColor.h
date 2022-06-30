@@ -1748,6 +1748,13 @@ private:
 		//=================================================================================
 		else if (write_address == 0xFF1A) {
 			apu->get_channel_3()->CH3__0xFF1A = value;
+
+			if ((value & 0b10000000) != 0) {//波形メモリチャネル有効フラグが有効な場合
+				apu->get_channel_3()->set_sound_enable_flag(true);
+			}
+			else {//波形メモリチャネル有効フラグが有効でない場合
+				apu->get_channel_3()->set_sound_enable_flag(false);
+			}
 		}
 		else if (write_address == 0xFF1B) {
 			apu->get_channel_3()->CH3__0xFF1B = value;
@@ -1760,6 +1767,12 @@ private:
 		}
 		else if (write_address == 0xFF1E) {
 			apu->get_channel_3()->CH3__0xFF1E = value;
+
+			if ((value & 0b10000000) != 0) {//リセットする場合
+				apu->get_channel_3()->CH3_length_counter = 0;
+
+				//apu->get_channel_3()->set_sound_enable_flag(true);
+			}
 		}
 		else if (0xFF30 <= write_address && write_address <= 0xFF3F) {
 			apu->get_channel_3()->CH3__0xFF30_0xFF3F[write_address - 0xFF30] = value;
