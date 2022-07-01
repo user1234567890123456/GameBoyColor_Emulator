@@ -25,7 +25,7 @@
 #define __MUTEX_NAME__ "k1Ol2fLe2gF9TJrcQmJiCgPGe6kSVkE6"
 
 
-#define GAMEBOYCOLOR_EMULATOR_DEBUG
+//#define GAMEBOYCOLOR_EMULATOR_DEBUG
 
 #define TITLE "ゲームボーイカラーのエミュレーター"
 //#define TITLE "GameboyColor Emulator"

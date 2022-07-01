@@ -10,6 +10,7 @@
 
 #include "VoiceCallBack.h"
 #include "DebugUtility.h"
+#include "My_Random.h"
 
 using namespace std;
 
@@ -51,7 +52,7 @@ private:
 
 	float freq_f;
 
-	bool isPlaying = false;
+	//bool isPlaying = false;
 	bool stop_flag = false;
 
 	uintptr_t stream_thread_handle = NULL;
@@ -73,7 +74,6 @@ private:
 		short* p;
 		p = (short*)current_create_wave_data;
 
-
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
 			p[i] = 0;
 		}
@@ -83,22 +83,22 @@ private:
 		mtx.unlock();
 	}
 
-	void create_wave_data_1(float freq) {
-		mtx.lock();
-
-		short* p;
-		p = (short*)current_create_wave_data;
-
-
-		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//波長
-			p[i] = (short)(SHRT_MAX * sinf(i * D3DX_PI / (wave_1cycle_length / 2)));
-		}
-
-		current_data_ready_flag = true;
-
-		mtx.unlock();
-	}
+	//void create_wave_data_1(float freq) {
+	//	mtx.lock();
+	//
+	//	short* p;
+	//	p = (short*)current_create_wave_data;
+	//
+	//
+	//	for (size_t i = 0; i < (wave_data_size / 2); i++) {
+	//		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//波長
+	//		p[i] = (short)(SHRT_MAX * sinf(i * D3DX_PI / (wave_1cycle_length / 2)));
+	//	}
+	//
+	//	current_data_ready_flag = true;
+	//
+	//	mtx.unlock();
+	//}
 
 	//デューティ比12.5%
 	void create_wave_data___square_wave_12_5(float freq, uint8_t volume_4bit) {
@@ -353,6 +353,43 @@ private:
 		mtx.unlock();
 	}
 
+	void create_wave_data___noise(float freq, uint8_t volume_4bit) {
+		mtx.lock();
+
+		bool short_freq_flag = ((CH4__0xFF22 & 0b1000) != 0) ? true : false;
+
+		short* p;
+		p = (short*)current_create_wave_data;
+
+		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//波長
+
+		size_t i = 0;
+		for (;;) {
+			short noise_wave_value;
+			if (short_freq_flag == false) {
+				noise_wave_value = (short)(My_Random::get_instance_ptr()->get_random_uint32() & 0b1111111111111110);
+			}
+			else {
+				uint16_t tmp_value_1 = (uint16_t)(My_Random::get_instance_ptr()->get_random_uint32() & 0b1111111000000000);
+				noise_wave_value = (short)(tmp_value_1);
+			}
+
+			for (int j = 0; j < wave_1cycle_length; j++, i++) {
+				if (!(i < (wave_data_size / 2))) {
+					goto create_noise_exit;
+				}
+
+				p[i] = ((double)volume_4bit / (double)0x0F) * noise_wave_value;
+			}
+		}
+
+	create_noise_exit:
+
+		current_data_ready_flag = true;
+
+		mtx.unlock();
+	}
+
 	uint8_t* consume_stream_buffer__th() {
 		uint8_t* new_buffer_ptr;
 
@@ -415,6 +452,11 @@ public:
 	uint8_t CH3__0xFF30_0xFF3F[16] = { 0 };
 
 	//====================================================
+
+	double CH4_length_counter = 0.0;
+
+	double CH4_envelope_counter = 0.0;
+	uint8_t CH4_envelope_volume = 0x0F;//0x0Fが最大0x00が無音
 
 	uint8_t CH4__0xFF20 = 0;
 	uint8_t CH4__0xFF21 = 0;
@@ -485,6 +527,17 @@ public:
 
 		delete callback;
 	}
+
+	//const float NOISE_FREQ1_TABLE[8] = {
+	//	1.0f,
+	//	2.0f,
+	//	4.0f,
+	//	6.0f,
+	//	8.0f,
+	//	10.0f,
+	//	12.0f,
+	//	14.0f,
+	//};
 
 	void update(uint64_t c_cycle) {
 		if (ch_type == CH_TYPE::CH1) {
@@ -599,6 +652,49 @@ public:
 			}
 		}
 		else {//CH4
+			uint8_t noise_freq_2 = ((CH4__0xFF22 >> 4) & 0b1111);
+			if (noise_freq_2 == 0b1111 || noise_freq_2 == 0b1110) {
+				sound_enable_flag = false;
+			}
+			float noise_freq_1 = (float)(CH4__0xFF22 & 0b111);// NOISE_FREQ1_TABLE[(CH4__0xFF22 & 0b111)];
+			if (noise_freq_1 == 0.0) {
+				noise_freq_1 = 0.5;
+			}
+			freq_f = 524288.0f / noise_freq_1 / (float)(1 << (noise_freq_2 + 1));
+			
+			//if (sound_enable_flag == true) {
+			if ((CH4__0xFF21 & 0b00000111) != 0) {
+				const uint8_t TMP_SPEED = (CH4__0xFF21 & 0b111);
+				const double ENVELOPE_SPEED = (double)TMP_SPEED * (1.0 / 64.0);
+				CH4_envelope_counter += (1.0 / CPU_FREQ_D) * c_cycle;
+				while (CH4_envelope_counter >= ENVELOPE_SPEED) {
+					CH4_envelope_counter -= ENVELOPE_SPEED;
+
+					if ((CH4__0xFF21 & 0b00001000) != 0) {//大きくなっていく
+						if (CH4_envelope_volume < 0x0F) {
+							CH4_envelope_volume++;
+						}
+					}
+					else {//小さくなっていく
+						if (CH4_envelope_volume > 0) {
+							CH4_envelope_volume--;
+						}
+					}
+				}
+
+			}
+
+
+			if ((CH4__0xFF23 & 0b01000000) != 0) {//長さカウンタ有効フラグが有効なとき
+				const uint8_t TMP_LENGTH = (CH4__0xFF20 & 0b00111111);
+				const double SOUND_LENGTH = (64.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
+				CH4_length_counter += (1.0 / CPU_FREQ_D) * c_cycle;
+				if (CH4_length_counter >= SOUND_LENGTH) {
+					sound_enable_flag = false;
+				}
+			}
+			//}
+
 		}
 	}
 
@@ -667,20 +763,24 @@ public:
 				else {
 					volume_4bit = 0b0011;
 				}
-
+			
 				create_wave_data___waveform_memory(freq_f, volume_4bit);
 			}
 			else {
 				create_wave_data___none();//無音
 			}
+
+			//create_wave_data___none();//無音
 		}
 		else {//CH4
 			if (sound_enable_flag == true) {
-
+				create_wave_data___noise(freq_f, (CH4_envelope_volume & 0b1111));
 			}
 			else {
 				create_wave_data___none();//無音
 			}
+
+			//create_wave_data___none();//無音
 		}
 	}
 

@@ -33,7 +33,7 @@ public:
 			M_debug_printf("ERROR CreateMasteringVoice\n");
 		}
 
-		mastering_voice->SetVolume(0.02);
+		mastering_voice->SetVolume(0.04);
 
 		ch1 = new Channel(Channel::CH_TYPE::CH1, xaudio);
 		ch2 = new Channel(Channel::CH_TYPE::CH2, xaudio);

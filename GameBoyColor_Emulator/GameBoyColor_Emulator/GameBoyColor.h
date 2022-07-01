@@ -1716,7 +1716,7 @@ private:
 				apu->get_channel_1()->CH1_envelope_volume = ((apu->get_channel_1()->CH1__0xFF12 >> 4) & 0b1111);
 				apu->get_channel_1()->CH1_envelope_counter = 0.0;
 
-				apu->get_channel_1()->CH1_length_counter = 0;
+				apu->get_channel_1()->CH1_length_counter = 0.0;
 
 				apu->get_channel_1()->set_sound_enable_flag(true);
 
@@ -1740,7 +1740,7 @@ private:
 				apu->get_channel_2()->CH2_envelope_volume = ((apu->get_channel_2()->CH2__0xFF17 >> 4) & 0b1111);
 				apu->get_channel_2()->CH2_envelope_counter = 0.0;
 
-				apu->get_channel_2()->CH2_length_counter = 0;
+				apu->get_channel_2()->CH2_length_counter = 0.0;
 
 				apu->get_channel_2()->set_sound_enable_flag(true);
 			}
@@ -1786,9 +1786,20 @@ private:
 		}
 		else if (write_address == 0xFF22) {
 			apu->get_channel_4()->CH4__0xFF22 = value;
+
+			//M_debug_printf("value = 0x%02x\n", value);
 		}
 		else if (write_address == 0xFF23) {
 			apu->get_channel_4()->CH4__0xFF23 = value;
+
+			if ((value & 0b10000000) != 0) {//リセットする場合
+				apu->get_channel_4()->CH4_envelope_volume = ((apu->get_channel_4()->CH4__0xFF21 >> 4) & 0b1111);
+				apu->get_channel_4()->CH4_envelope_counter = 0.0;
+
+				apu->get_channel_4()->CH4_length_counter = 0.0;
+
+				apu->get_channel_4()->set_sound_enable_flag(true);
+			}
 		}
 		//=================================================================================
 		else if (write_address == 0xFF24) {//サウンド(未実装)
