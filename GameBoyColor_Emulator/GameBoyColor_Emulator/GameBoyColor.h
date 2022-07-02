@@ -25,6 +25,8 @@ class GameBoyColor
 {
 private:
 
+	vector<uint32_t> resident_cheat_code_list;
+
 
 	APU* apu;
 
@@ -7207,6 +7209,44 @@ public:
 		return FATAL_ERROR_FLAG;
 	}
 
+	void apply_cheat_code_list(vector<uint32_t> &cheat_code_list) {
+		for (int i = 0; i < cheat_code_list.size(); i++) {
+			uint32_t cheat_code = cheat_code_list[i];
+
+			uint16_t write_address = ((cheat_code & 0b11111111) << 8) | ((cheat_code >> 8) & 0b11111111);
+			uint16_t value = ((cheat_code >> 16) & 0b1111111111111111);
+
+			write_RAM_16bit(write_address, value);
+
+			//M_debug_printf("[i = %d] <CHEAT_WRITE> addr = 0x%04X, value = 0x%04X\n", i, write_address, value);
+			//M_debug_printf("[i = %d] <CHEAT_READ> addr = 0x%04X, value = 0x%04X\n", i, write_address, read_RAM_16bit(write_address));
+		}
+	}
+
+	void update_resident_cheat_code_list(vector<uint32_t>& resident_cheat_code_array) {
+		//resident_cheat_code_list.clear();
+		//resident_cheat_code_list.shrink_to_fit();
+
+		resident_cheat_code_list = resident_cheat_code_array;
+	}
+
+	void search_memory(uint16_t search_value, vector<uint16_t>& found_address_list, bool search_16bit_flag) {
+		if (search_16bit_flag == false) {
+			for (uint16_t i = 0; i < 0xFFFF; i++) {
+				if (read_RAM_8bit(i) == (uint8_t)search_value) {
+					found_address_list.push_back(i);
+				}
+			}
+		}
+		else {
+			for (uint16_t i = 0; i < 0xFFFE; i++) {
+				if (read_RAM_16bit(i) == search_value) {
+					found_address_list.push_back(i);
+				}
+			}
+		}
+	}
+
 	void execute_all() {
 		memset(backbuffer_isnobackgroundcolor_mask, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
 		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
@@ -7391,6 +7431,8 @@ public:
 		//}
 
 		apu->execute_all_channel();
+
+		apply_cheat_code_list(resident_cheat_code_list);
 
 	}
 };

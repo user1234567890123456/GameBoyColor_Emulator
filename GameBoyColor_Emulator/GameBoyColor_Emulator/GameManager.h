@@ -10,6 +10,8 @@
 class GameManager
 {
 private:
+	static GameManager* singleton;
+
 	GameBoyColor* gbx = nullptr;
 
 	MyDirectXSystem *myDirectXSystem;
@@ -17,9 +19,25 @@ private:
 	//LPD3DXSPRITE sprite;
 
 	Key *key;
-public:
-	GameManager(MyDirectXSystem *myDirectXSystem, Key *key/*, LPD3DXSPRITE sprite*/);
+
+	GameManager(MyDirectXSystem* myDirectXSystem, Key* key/*, LPD3DXSPRITE sprite*/);
 	~GameManager();
+public:
+	static void Init(MyDirectXSystem* myDirectXSystem, Key* key) {
+		singleton = new GameManager(myDirectXSystem, key);
+	}
+
+	static void End() {
+		delete singleton;
+	}
+
+	static GameManager* get_instance_ptr() {
+		return singleton;
+	}
 
 	void execute_game_process();
+
+	GameBoyColor* get_gameboy() {
+		return gbx;
+	}
 };

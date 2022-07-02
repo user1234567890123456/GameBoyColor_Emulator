@@ -34,4 +34,8 @@ public:
 
 
 	static bool Show_DEBUG_INFO_Flag;
+
+
+	
+	//static bool Cheat_Window_Exist_Flag;
 };

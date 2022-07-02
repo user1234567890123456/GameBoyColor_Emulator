@@ -52,7 +52,7 @@ BOOL CALLBACK DeviceFindCallBack(LPCDIDEVICEINSTANCE ipddi, LPVOID pvRef)
 		return DIENUM_CONTINUE;
 	}
 
-	result = (*lp_device_2)->SetCooperativeLevel(arg->window_handle, DISCL_EXCLUSIVE | DISCL_FOREGROUND);
+	result = (*lp_device_2)->SetCooperativeLevel(arg->window_handle, /*DISCL_EXCLUSIVE*/DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
 	if (FAILED(result)) {
 		M_debug_printf("DeviceFindCallBack() err 3\n");
 

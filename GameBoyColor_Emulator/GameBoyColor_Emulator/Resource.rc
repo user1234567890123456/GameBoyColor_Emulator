@@ -72,7 +72,7 @@ BEGIN
     END
     POPUP "チート"
     BEGIN
-        MENUITEM "チートコードの入力",                   ID_40010
+        MENUITEM "チートコードの入力/メモリサーチ",            ID_40010
     END
 END
 

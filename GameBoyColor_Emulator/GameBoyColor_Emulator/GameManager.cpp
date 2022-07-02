@@ -1,5 +1,7 @@
 #include "GameManager.h"
 
+GameManager* GameManager::singleton = nullptr;
+
 GameManager::GameManager(MyDirectXSystem *myDirectXSystem, Key *key/*, LPD3DXSPRITE sprite*/) :
 	myDirectXSystem(myDirectXSystem), key(key)//, sprite(sprite)
 {
