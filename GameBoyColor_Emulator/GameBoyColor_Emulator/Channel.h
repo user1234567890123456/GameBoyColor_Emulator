@@ -110,7 +110,7 @@ private:
 
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
 			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.75f) {
+			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.92387953251128675612818318939679f) {//0.92387953251128675612818318939679 = sin(67.5)
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
