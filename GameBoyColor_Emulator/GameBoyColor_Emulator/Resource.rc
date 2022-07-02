@@ -70,7 +70,7 @@ BEGIN
     BEGIN
         MENUITEM "デバッグ情報を表示する",                 ID_40009
     END
-    POPUP "チート"
+    POPUP "チート/メモリ"
     BEGIN
         MENUITEM "チートコードの入力/メモリサーチ",            ID_40010
     END

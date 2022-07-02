@@ -1150,10 +1150,14 @@ LRESULT CALLBACK CheatWinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_p
 		TextOut(hdc, 10, 10, _T("チートコード(16進数、複数行可能)  例)ABCD1234"), lstrlen(_T("チートコード(16進数、複数行可能)  例)ABCD1234")));
 		TextOut(hdc, 10, 250, _T("チートコード(常駐します、16進数、複数行可能)"), lstrlen(_T("チートコード(常駐します、16進数、複数行可能)")));
 		TextOut(hdc, 10, 430, _T("適用中のチートコード一覧"), lstrlen(_T("適用中のチートコード一覧")));
-		TextOut(hdc, 410, 10, _T("メモリのサーチの結果(時間がかかる場合あり)"), lstrlen(_T("メモリのサーチの結果(時間がかかる場合あり)")));
+		TextOut(hdc, 410, 10, _T("メモリのサーチの結果"), lstrlen(_T("メモリのサーチの結果")));
 		TextOut(hdc, 410, 220, _T("サーチしたい値(16進数)"), lstrlen(_T("サーチしたい値(16進数)")));
 		TextOut(hdc, 600, 220, _T("サーチしたい値のサイズ"), lstrlen(_T("サーチしたい値のサイズ")));
 		TextOut(hdc, 410, 320, _T("絞り込みのオプション"), lstrlen(_T("絞り込みのオプション")));
+		TextOut(hdc, 410, 520, _T("※値は16進数で記入してください"), lstrlen(_T("※値は16進数で記入してください")));
+		TextOut(hdc, 410, 545, _T("※常駐コードがあまりにも多すぎると重くなります"), lstrlen(_T("※常駐コードがあまりにも多すぎると重くなります")));
+		TextOut(hdc, 410, 570, _T("※メモリのサーチでは非常に時間がかかる場合が"), lstrlen(_T("※メモリのサーチでは非常に時間がかかる場合が")));
+		TextOut(hdc, 410, 590, _T("あります"), lstrlen(_T("あります")));
 
 		EndPaint(h_wnd, &ps);
 
