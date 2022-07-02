@@ -92,6 +92,8 @@ HWND next_search_not_equal_radiobutton;
 HWND next_search_biggar_radiobutton;
 HWND next_search_smaller_radiobutton;
 HWND next_search_unknown_radiobutton;
+HWND next_search_cmp_prevvalue_equal_radiobutton;
+HWND next_search_cmp_prevvalue_not_equal_radiobutton;
 HWND next_search_start_button;
 
 
@@ -813,7 +815,18 @@ LRESULT CALLBACK CheatWinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_p
 
 	switch (u_msg) {
 	case WM_COMMAND:
-		if (LOWORD(w_param) == BUTTON_ID_CHEATCODE_APPLY) {
+		if (
+			(HWND)l_param == search_8bit_radiobutton ||
+			(HWND)l_param == search_16bit_radiobutton)
+		{
+			//M_debug_printf("Select search bit mode\n");
+
+			ListView_DeleteAllItems(search_result_listview);
+			clear_found_address_info_list();
+
+			return 0;
+		}
+		else if (LOWORD(w_param) == BUTTON_ID_CHEATCODE_APPLY) {
 			const int CHEAT_CODE_TEXT_LENGTH = GetWindowTextLength(cheat_textedit);
 			strText = (LPTSTR)malloc((CHEAT_CODE_TEXT_LENGTH + 1) * sizeof(TCHAR));
 			GetWindowText(cheat_textedit, strText, CHEAT_CODE_TEXT_LENGTH + 1);
@@ -978,7 +991,7 @@ LRESULT CALLBACK CheatWinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_p
 						if (gameboy_ptr != nullptr) {
 							clear_found_address_info_list();
 
-							gameboy_ptr->first_search_memory((search_value_16bit & 0xFF), found_address_info_list, true);
+							gameboy_ptr->first_search_memory(search_value_16bit, found_address_info_list, true);
 
 							process_first_search_result();
 						}
@@ -997,12 +1010,133 @@ LRESULT CALLBACK CheatWinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_p
 			return 0;
 		}
 		else if (LOWORD(w_param) == BUTTON_ID_MEMORY_NEXTSEARCH_START) {
-			GameBoyColor* gameboy_ptr = GameManager::get_instance_ptr()->get_gameboy();
-			if (gameboy_ptr != nullptr) {
+			if (BST_CHECKED == SendMessage(next_search_unknown_radiobutton, BM_GETCHECK, 0, 0)) {
+				GameBoyColor* gameboy_ptr = GameManager::get_instance_ptr()->get_gameboy();
+				if (gameboy_ptr != nullptr) {
+					clear_found_address_info_list();
 
+					if (BST_CHECKED == SendMessage(search_8bit_radiobutton, BM_GETCHECK, 0, 0)) {
+						gameboy_ptr->search_memory_unknown_value(found_address_info_list, false);
+					}
+					else {
+						gameboy_ptr->search_memory_unknown_value(found_address_info_list, true);
+					}
+
+					process_first_search_result();
+				}
+				else {
+					MessageBox(cheat_hwnd, _T("ゲームがロードされていません"), _T("情報"), MB_ICONWARNING | MB_APPLMODAL);
+				}
+			}
+			else if (BST_CHECKED == SendMessage(next_search_cmp_prevvalue_equal_radiobutton, BM_GETCHECK, 0, 0)) {
+				GameBoyColor* gameboy_ptr = GameManager::get_instance_ptr()->get_gameboy();
+				if (gameboy_ptr != nullptr) {
+					if (BST_CHECKED == SendMessage(search_8bit_radiobutton, BM_GETCHECK, 0, 0)) {
+						gameboy_ptr->search_memory_cmp_prevvalue_equal(found_address_info_list, false);
+					}
+					else {
+						gameboy_ptr->search_memory_cmp_prevvalue_equal(found_address_info_list, true);
+					}
+
+					process_first_search_result();
+				}
+				else {
+					MessageBox(cheat_hwnd, _T("ゲームがロードされていません"), _T("情報"), MB_ICONWARNING | MB_APPLMODAL);
+				}
+			}
+			else if (BST_CHECKED == SendMessage(next_search_cmp_prevvalue_not_equal_radiobutton, BM_GETCHECK, 0, 0)) {
+				GameBoyColor* gameboy_ptr = GameManager::get_instance_ptr()->get_gameboy();
+				if (gameboy_ptr != nullptr) {
+					if (BST_CHECKED == SendMessage(search_8bit_radiobutton, BM_GETCHECK, 0, 0)) {
+						gameboy_ptr->search_memory_cmp_prevvalue_not_equal(found_address_info_list, false);
+					}
+					else {
+						gameboy_ptr->search_memory_cmp_prevvalue_not_equal(found_address_info_list, true);
+					}
+
+					process_first_search_result();
+				}
+				else {
+					MessageBox(cheat_hwnd, _T("ゲームがロードされていません"), _T("情報"), MB_ICONWARNING | MB_APPLMODAL);
+				}
 			}
 			else {
-				MessageBox(cheat_hwnd, _T("ゲームがロードされていません"), _T("情報"), MB_ICONWARNING | MB_APPLMODAL);
+				const int SEARCH_VALUE_TEXT_LENGTH = GetWindowTextLength(search_value_text);
+				strText = (LPTSTR)malloc((SEARCH_VALUE_TEXT_LENGTH + 1) * sizeof(TCHAR));
+				GetWindowText(search_value_text, strText, SEARCH_VALUE_TEXT_LENGTH + 1);
+				strText[SEARCH_VALUE_TEXT_LENGTH] = _T('\0');
+
+				//M_debug_printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+				//M_debug_printf("[text_length = %d]\n<text>\n%s\n", SEARCH_VALUE_TEXT_LENGTH, strText);
+				//M_debug_printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+
+				if (SEARCH_VALUE_TEXT_LENGTH == 0) {
+					MessageBox(cheat_hwnd, _T("数値を入力してください"), _T("情報"), MB_ICONINFORMATION | MB_APPLMODAL);
+				}
+				else {
+					uint16_t search_value_16bit;
+					int result = parse_search_4byte_value(&search_value_16bit, strText, SEARCH_VALUE_TEXT_LENGTH);
+
+					//M_debug_printf("search_value_16bit = 0x%04X\n", search_value_16bit);
+
+					if (result != -1) {
+						if (BST_CHECKED == SendMessage(search_8bit_radiobutton, BM_GETCHECK, 0, 0)) {
+							//MessageBox(main_window, _T("8bit"), _T("情報"), MB_ICONINFORMATION | MB_APPLMODAL);
+							if (search_value_16bit > 0xFF) {
+								MessageBox(cheat_hwnd, _T("入力された数値が8bitより大きいです"), _T("情報"), MB_ICONWARNING | MB_APPLMODAL);
+							}
+							else {
+								GameBoyColor* gameboy_ptr = GameManager::get_instance_ptr()->get_gameboy();
+								if (gameboy_ptr != nullptr) {
+									if (BST_CHECKED == SendMessage(next_search_equal_radiobutton, BM_GETCHECK, 0, 0)) {
+										gameboy_ptr->search_memory_cmp_equal((search_value_16bit & 0xFF), found_address_info_list, false);
+									}
+									else if (BST_CHECKED == SendMessage(next_search_not_equal_radiobutton, BM_GETCHECK, 0, 0)) {
+										gameboy_ptr->search_memory_cmp_not_equal((search_value_16bit & 0xFF), found_address_info_list, false);
+									}
+									else if (BST_CHECKED == SendMessage(next_search_biggar_radiobutton, BM_GETCHECK, 0, 0)) {
+										gameboy_ptr->search_memory_cmp_biggar((search_value_16bit & 0xFF), found_address_info_list, false);
+									}
+									else {//next_search_smaller_radiobutton
+										gameboy_ptr->search_memory_cmp_smaller((search_value_16bit & 0xFF), found_address_info_list, false);
+									}
+
+									process_first_search_result();
+								}
+								else {
+									MessageBox(cheat_hwnd, _T("ゲームがロードされていません"), _T("情報"), MB_ICONWARNING | MB_APPLMODAL);
+								}
+							}
+						}
+						else {
+							GameBoyColor* gameboy_ptr = GameManager::get_instance_ptr()->get_gameboy();
+							if (gameboy_ptr != nullptr) {
+								if (BST_CHECKED == SendMessage(next_search_equal_radiobutton, BM_GETCHECK, 0, 0)) {
+									gameboy_ptr->search_memory_cmp_equal(search_value_16bit, found_address_info_list, true);
+								}
+								else if (BST_CHECKED == SendMessage(next_search_not_equal_radiobutton, BM_GETCHECK, 0, 0)) {
+									gameboy_ptr->search_memory_cmp_not_equal(search_value_16bit, found_address_info_list, true);
+								}
+								else if (BST_CHECKED == SendMessage(next_search_biggar_radiobutton, BM_GETCHECK, 0, 0)) {
+									gameboy_ptr->search_memory_cmp_biggar(search_value_16bit, found_address_info_list, true);
+								}
+								else {//next_search_smaller_radiobutton
+									gameboy_ptr->search_memory_cmp_smaller(search_value_16bit, found_address_info_list, true);
+								}
+
+								process_first_search_result();
+							}
+							else {
+								MessageBox(cheat_hwnd, _T("ゲームがロードされていません"), _T("情報"), MB_ICONWARNING | MB_APPLMODAL);
+							}
+						}
+					}
+					else {
+						MessageBox(cheat_hwnd, _T("入力された数値が不正です"), _T("情報"), MB_ICONWARNING | MB_APPLMODAL);
+					}
+				}
+
+				free(strText);
 			}
 
 			return 0;
@@ -1038,6 +1172,8 @@ LRESULT CALLBACK CheatWinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_p
 			(HWND)l_param == next_search_biggar_radiobutton ||
 			(HWND)l_param == next_search_smaller_radiobutton ||
 			(HWND)l_param == next_search_unknown_radiobutton ||
+			(HWND)l_param == next_search_cmp_prevvalue_equal_radiobutton ||
+			(HWND)l_param == next_search_cmp_prevvalue_not_equal_radiobutton ||
 			(HWND)l_param == search_8bit_radiobutton ||
 			(HWND)l_param == search_16bit_radiobutton)
 		{
@@ -1262,13 +1398,33 @@ LRESULT CALLBACK CheatWinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_p
 			NULL,
 			global_hInstance,
 			NULL);
+		next_search_cmp_prevvalue_equal_radiobutton = CreateWindow(
+			_T("button"),
+			_T("前回の値と同じ"),
+			WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,
+			600, 400,
+			200, 30,
+			h_wnd,
+			NULL,
+			global_hInstance,
+			NULL);
+		next_search_cmp_prevvalue_not_equal_radiobutton = CreateWindow(
+			_T("button"),
+			_T("前回の値と違う"),
+			WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,
+			410, 430,
+			190, 30,
+			h_wnd,
+			NULL,
+			global_hInstance,
+			NULL);
 		SendMessage(next_search_equal_radiobutton, BM_SETCHECK, BST_CHECKED, 0);
 
 		next_search_start_button = CreateWindow(
 			_T("button"),
 			_T("メモリのサーチ(絞り込み)を開始する"),
 			WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-			410, 440,
+			410, 470,
 			380, 30,
 			h_wnd,
 			(HMENU)BUTTON_ID_MEMORY_NEXTSEARCH_START,
@@ -1464,11 +1620,11 @@ void process_first_search_result() {
 
 	ListView_DeleteAllItems(search_result_listview);
 
-	TCHAR item_name_buffer[128];
+	TCHAR item_name_buffer[256];
 	LVITEM item = { 0 };
 	for (int i = 0; i < found_address_info_list.size(); i++) {
 		item.mask = LVIF_TEXT;
-		wsprintf(item_name_buffer, "0x%04X", found_address_info_list[i].address);
+		wsprintf(item_name_buffer, "address = 0x%04X   prev_value = 0x%X   value = 0x%X", found_address_info_list[i].address, found_address_info_list[i].prev_value, found_address_info_list[i].value);
 		item.pszText = item_name_buffer;
 		item.iItem = i;
 		ListView_InsertItem(search_result_listview, &item);

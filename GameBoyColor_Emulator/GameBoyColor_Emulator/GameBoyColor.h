@@ -7396,6 +7396,97 @@ public:
 		found_address_info_list = new_found_addr_i_l;
 	}
 
+	void search_memory_unknown_value(vector<found_info>& found_address_info_list, bool search_16bit_flag) {
+		if (search_16bit_flag == false) {
+			for (uint16_t i = 0; i < 0xFFFF; i++) {
+				uint8_t read_value = read_RAM_8bit(i);
+
+				found_info fi;
+				fi.address = i;
+				fi.value = read_value;
+				fi.prev_value = 0x00;
+				found_address_info_list.push_back(fi);
+			}
+		}
+		else {
+			for (uint16_t i = 0; i < 0xFFFE; i++) {
+				uint16_t read_value = read_RAM_16bit(i);
+
+				found_info fi;
+				fi.address = i;
+				fi.value = read_value;
+				fi.prev_value = 0x0000;
+				found_address_info_list.push_back(fi);
+			}
+		}
+	}
+
+	void search_memory_cmp_prevvalue_equal(vector<found_info>& found_address_info_list, bool search_16bit_flag) {
+		vector<found_info> new_found_addr_i_l;
+
+		if (search_16bit_flag == false) {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
+				if (found_address_info_list[i].value == read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = read_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
+				if (found_address_info_list[i].value == read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = read_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+
+		found_address_info_list = new_found_addr_i_l;
+	}
+
+	void search_memory_cmp_prevvalue_not_equal(vector<found_info>& found_address_info_list, bool search_16bit_flag) {
+		vector<found_info> new_found_addr_i_l;
+
+		if (search_16bit_flag == false) {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
+				if (found_address_info_list[i].value != read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = read_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
+				if (found_address_info_list[i].value != read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = read_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+
+		found_address_info_list = new_found_addr_i_l;
+	}
+
 
 	void execute_all() {
 		memset(backbuffer_isnobackgroundcolor_mask, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
