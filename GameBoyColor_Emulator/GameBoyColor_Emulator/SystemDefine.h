@@ -125,3 +125,14 @@ struct VERTEX_XYZ_RHW_COLOR_UV {
 const uint32_t INIT_BGM_VOLUME = 30;
 const uint32_t INIT_SE_VOLUME = 20;
 const bool INIT_GAMEPLAY_SE_FLAG = true;
+
+struct found_info {
+	uint16_t address;
+	uint16_t value;
+	uint16_t prev_value;
+};
+
+struct resident_cheat_info {
+	size_t code_total_number;
+	uint32_t* resident_cheat_code_list_ptr;
+};

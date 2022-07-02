@@ -20,7 +20,6 @@ using namespace std;
 
 #define CPU_FREQ 4194304//CPUの周波数(hz)
 
-
 class GameBoyColor
 {
 private:
@@ -7223,29 +7222,180 @@ public:
 		}
 	}
 
-	void update_resident_cheat_code_list(vector<uint32_t>& resident_cheat_code_array) {
+	void update_resident_cheat_code_list(vector<resident_cheat_info>& resident_cheat_info_array) {
 		//resident_cheat_code_list.clear();
 		//resident_cheat_code_list.shrink_to_fit();
 
+		vector<uint32_t> resident_cheat_code_array;
+		for (int m = 0; m < resident_cheat_info_array.size(); m++) {
+			for (int n = 0; n < resident_cheat_info_array[m].code_total_number; n++) {
+				uint32_t r_cheat_code = resident_cheat_info_array[m].resident_cheat_code_list_ptr[n];
+				resident_cheat_code_array.push_back(r_cheat_code);
+			}
+		}
 		resident_cheat_code_list = resident_cheat_code_array;
 	}
 
-	void search_memory(uint16_t search_value, vector<uint16_t>& found_address_list, bool search_16bit_flag) {
+
+	void first_search_memory(uint16_t search_value, vector<found_info>& found_address_info_list, bool search_16bit_flag) {
 		if (search_16bit_flag == false) {
 			for (uint16_t i = 0; i < 0xFFFF; i++) {
-				if (read_RAM_8bit(i) == (uint8_t)search_value) {
-					found_address_list.push_back(i);
+				uint8_t read_value = read_RAM_8bit(i);
+				if (read_value == (uint8_t)search_value) {
+					found_info fi;
+					fi.address = i;
+					fi.value = search_value;
+					fi.prev_value = 0x00;
+					found_address_info_list.push_back(fi);
 				}
 			}
 		}
 		else {
 			for (uint16_t i = 0; i < 0xFFFE; i++) {
-				if (read_RAM_16bit(i) == search_value) {
-					found_address_list.push_back(i);
+				uint16_t read_value = read_RAM_16bit(i);
+				if (read_value == search_value) {
+					found_info fi;
+					fi.address = i;
+					fi.value = search_value;
+					fi.prev_value = 0x0000;
+					found_address_info_list.push_back(fi);
 				}
 			}
 		}
 	}
+
+	void search_memory_cmp_equal(uint16_t search_value, vector<found_info>& found_address_info_list, bool search_16bit_flag) {
+		vector<found_info> new_found_addr_i_l;
+
+		if (search_16bit_flag == false) {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
+				if (search_value == read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = search_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
+				if (search_value == read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = search_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+
+		found_address_info_list = new_found_addr_i_l;
+	}
+
+	void search_memory_cmp_not_equal(uint16_t search_value, vector<found_info>& found_address_info_list, bool search_16bit_flag) {
+		vector<found_info> new_found_addr_i_l;
+
+		if (search_16bit_flag == false) {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
+				if (search_value != read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = search_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
+				if (search_value != read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = search_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+
+		found_address_info_list = new_found_addr_i_l;
+	}
+
+	void search_memory_cmp_biggar(uint16_t cmp_value, vector<found_info>& found_address_info_list, bool search_16bit_flag) {
+		vector<found_info> new_found_addr_i_l;
+
+		if (search_16bit_flag == false) {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
+				if (cmp_value < read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = read_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
+				if (cmp_value < read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = read_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+
+		found_address_info_list = new_found_addr_i_l;
+	}
+
+	void search_memory_cmp_smaller(uint16_t cmp_value, vector<found_info>& found_address_info_list, bool search_16bit_flag) {
+		vector<found_info> new_found_addr_i_l;
+
+		if (search_16bit_flag == false) {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
+				if (cmp_value > read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = read_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < found_address_info_list.size(); i++) {
+				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
+				if (cmp_value > read_value) {
+					found_info fi;
+					fi.address = i;
+					fi.prev_value = found_address_info_list[i].value;
+					fi.value = read_value;
+
+					new_found_addr_i_l.push_back(fi);
+				}
+			}
+		}
+
+		found_address_info_list = new_found_addr_i_l;
+	}
+
 
 	void execute_all() {
 		memset(backbuffer_isnobackgroundcolor_mask, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
