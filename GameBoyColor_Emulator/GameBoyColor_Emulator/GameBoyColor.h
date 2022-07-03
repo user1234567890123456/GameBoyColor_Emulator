@@ -1267,10 +1267,10 @@ private:
 			read_value = apu->get_channel_4()->CH4__0xFF23;
 		}
 		//=================================================================================
-		else if (read_address == 0xFF24) {//サウンド(未実装)
+		else if (read_address == 0xFF24) {//サウンド
 			read_value = gbx_ram.RAM[read_address];
 		}
-		else if (read_address == 0xFF25) {//サウンド(未実装)
+		else if (read_address == 0xFF25) {//サウンド
 			read_value = gbx_ram.RAM[read_address];
 		}
 		else if (read_address == 0xFF26) {//サウンド
@@ -1803,11 +1803,152 @@ private:
 			}
 		}
 		//=================================================================================
-		else if (write_address == 0xFF24) {//サウンド(未実装)
+		else if (write_address == 0xFF24) {//サウンド
 			gbx_ram.RAM[write_address] = value;
+
+			float left_volume;
+			float right_volume;
+
+			//if ((value & 0b10000000) != 0) {//左出力有効フラグが有効なとき
+			uint8_t left_volume_3bit_value = ((value >> 4) & 0b111);
+
+			if (left_volume_3bit_value == 7) {
+				left_volume = 1.0f;
+			}
+			else if (left_volume_3bit_value == 0) {
+				left_volume = 0.0f;
+			}
+			else {
+				left_volume = ((float)left_volume_3bit_value / 7.0f);
+			}
+			//}
+			//else {//左出力有効フラグが無効なとき
+			//	left_volume = 0.0f;
+			//}
+
+			//if ((value & 0b00001000) != 0) {//右出力有効フラグが有効なとき
+			uint8_t right_volume_3bit_value = (value & 0b111);
+
+			if (right_volume_3bit_value == 7) {
+				right_volume = 1.0f;
+			}
+			else if (right_volume_3bit_value == 0) {
+				right_volume = 0.0f;
+			}
+			else {
+				right_volume = ((float)right_volume_3bit_value / 7.0f);
+			}
+			//}
+			//else {//右出力有効フラグが無効なとき
+			//	right_volume = 0.0f;
+			//}
+
+			//M_debug_printf("value = 0x%02X,  left_volume_3bit_value = %d,  right_volume_3bit_value = %d\n", value, ((value >> 4) & 0b111), (value & 0b111));
+			//M_debug_printf("left_volume = %f,  right_volume = %f\n", left_volume, right_volume);
+			apu->set_all_Channel_Left_Right_volume(left_volume, right_volume);
 		}
-		else if (write_address == 0xFF25) {//サウンド(未実装)
+		else if (write_address == 0xFF25) {//サウンド
+			//M_debug_printf("<0xFF25> value = 0x%02x\n", value);
+
 			gbx_ram.RAM[write_address] = value;
+
+			float left_volume;
+			float right_volume;
+
+			uint8_t left_volume_3bit_value = ((gbx_ram.RAM[0xFF24] >> 4) & 0b111);
+			if (left_volume_3bit_value == 7) {
+				left_volume = 1.0f;
+			}
+			else if (left_volume_3bit_value == 0) {
+				left_volume = 0.0f;
+			}
+			else {
+				left_volume = ((float)left_volume_3bit_value / 7.0f);
+			}
+
+			uint8_t right_volume_3bit_value = (gbx_ram.RAM[0xFF24] & 0b111);
+			if (right_volume_3bit_value == 7) {
+				right_volume = 1.0f;
+			}
+			else if (right_volume_3bit_value == 0) {
+				right_volume = 0.0f;
+			}
+			else {
+				right_volume = ((float)right_volume_3bit_value / 7.0f);
+			}
+
+			if ((value & 0b10000000) != 0) {
+				apu->get_channel_4()->left_sound_ON_flag = true;
+				apu->set_Channel4_Left_volume(left_volume);
+			}
+			else {
+				apu->get_channel_4()->left_sound_ON_flag = false;
+				apu->set_Channel4_Left_volume(0.0f);
+			}
+
+			if ((value & 0b01000000) != 0) {
+				apu->get_channel_3()->left_sound_ON_flag = true;
+				apu->set_Channel3_Left_volume(left_volume);
+			}
+			else {
+				apu->get_channel_3()->left_sound_ON_flag = false;
+				apu->set_Channel3_Left_volume(0.0f);
+			}
+
+			if ((value & 0b00100000) != 0) {
+				apu->get_channel_2()->left_sound_ON_flag = true;
+				apu->set_Channel2_Left_volume(left_volume);
+			}
+			else {
+				apu->get_channel_2()->left_sound_ON_flag = false;
+				apu->set_Channel2_Left_volume(0.0f);
+			}
+
+			if ((value & 0b00010000) != 0) {
+				apu->get_channel_1()->left_sound_ON_flag = true;
+				apu->set_Channel1_Left_volume(left_volume);
+			}
+			else {
+				apu->get_channel_1()->left_sound_ON_flag = false;
+				apu->set_Channel1_Left_volume(0.0f);
+			}
+
+			if ((value & 0b00001000) != 0) {
+				apu->get_channel_4()->right_sound_ON_flag = true;
+				apu->set_Channel4_Right_volume(right_volume);
+			}
+			else {
+				apu->get_channel_4()->right_sound_ON_flag = false;
+				apu->set_Channel4_Right_volume(0.0f);
+			}
+
+			if ((value & 0b00000100) != 0) {
+				apu->get_channel_3()->right_sound_ON_flag = true;
+				apu->set_Channel3_Right_volume(right_volume);
+			}
+			else {
+				apu->get_channel_3()->right_sound_ON_flag = false;
+				apu->set_Channel3_Right_volume(0.0f);
+			}
+
+			if ((value & 0b00000010) != 0) {
+				apu->get_channel_2()->right_sound_ON_flag = true;
+				apu->set_Channel2_Right_volume(right_volume);
+			}
+			else {
+				apu->get_channel_2()->right_sound_ON_flag = false;
+				apu->set_Channel2_Right_volume(0.0f);
+			}
+
+			if ((value & 0b00000001) != 0) {
+				apu->get_channel_1()->right_sound_ON_flag = true;
+				apu->set_Channel1_Right_volume(right_volume);
+			}
+			else {
+				apu->get_channel_1()->right_sound_ON_flag = false;
+				apu->set_Channel1_Right_volume(0.0f);
+			}
+
 		}
 		else if (write_address == 0xFF26) {//サウンド
 			apu->all_channel_enable_flag = ((value & 0b10000000) != 0) ? true : false;

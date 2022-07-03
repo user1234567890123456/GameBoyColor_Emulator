@@ -411,6 +411,9 @@ private:
 
 public:
 
+	bool left_sound_ON_flag = true;//左のサウンドが有効ならtrue
+	bool right_sound_ON_flag = true;//右のサウンドが有効ならtrue
+
 	//====================================================
 
 	double CH1_sweep_counter = 0.0;
@@ -803,6 +806,10 @@ public:
 		freq_f = 131072.0f / (2048.0f - (float)freq);
 
 		CH1_sweep_freq_f = freq_f;
+	}
+
+	IXAudio2SourceVoice* get_source_voice_ptr() {
+		return source_voice;
 	}
 
 };
