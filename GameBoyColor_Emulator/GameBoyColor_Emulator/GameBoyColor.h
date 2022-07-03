@@ -1793,14 +1793,18 @@ private:
 		else if (write_address == 0xFF23) {
 			apu->get_channel_4()->CH4__0xFF23 = value;
 
-			if ((value & 0b10000000) != 0) {//リセットする場合
+			/*
+			条件をつけるとノイズがなり続けて止まらないことがある(ゲームボーイの仕様？
+			条件をコメントアウトすると正常に動作するのでコメントアウトしておく
+			*/
+			//if ((value & 0b10000000) != 0) {//リセットする場合
 				apu->get_channel_4()->CH4_envelope_volume = ((apu->get_channel_4()->CH4__0xFF21 >> 4) & 0b1111);
 				apu->get_channel_4()->CH4_envelope_counter = 0.0;
 
 				apu->get_channel_4()->CH4_length_counter = 0.0;
 
 				apu->get_channel_4()->set_sound_enable_flag(true);
-			}
+			//}
 		}
 		//=================================================================================
 		else if (write_address == 0xFF24) {//サウンド
@@ -7741,19 +7745,22 @@ public:
 
 			if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY) {
 				execute_ppu_process(cpu_machine_cycle * 4 + c_cycle_mod);
+				apu->update_all_channel(cpu_machine_cycle * 4 + c_cycle_mod);
 			}
 			else {
 				if (CURRENT_CPU_Clock_2x_Flag__CGB == true) {
 					execute_ppu_process(((cpu_machine_cycle * 4) / 2) + c_cycle_mod);//倍速モードのとき
+					apu->update_all_channel(((cpu_machine_cycle * 4) / 2) + c_cycle_mod);
 				}
 				else {
 					execute_ppu_process(cpu_machine_cycle * 4 + c_cycle_mod);
+					apu->update_all_channel(cpu_machine_cycle * 4 + c_cycle_mod);
 				}
 			}
 
 			update_LCD_STAT();
 
-			apu->update_all_channel(cpu_machine_cycle * 4 + c_cycle_mod);
+			//apu->update_all_channel(cpu_machine_cycle * 4 + c_cycle_mod);
 
 			cpu_machine_cycle = 0;
 
@@ -7816,7 +7823,7 @@ public:
 		//	system("pause");
 		//}
 
-		apu->execute_all_channel();
+		apu->execute_all_channel();//音声のキューを更新する
 
 		apply_cheat_code_list(resident_cheat_code_list);
 

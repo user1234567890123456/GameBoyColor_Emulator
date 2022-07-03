@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <stdint.h>
 
@@ -14,7 +14,7 @@
 
 using namespace std;
 
-#define CPU_FREQ_D 4194304.0//CPU‚Ìü”g”(hz)
+#define CPU_FREQ_D 4194304.0//CPUã®å‘¨æ³¢æ•°(hz)
 
 class Channel
 {
@@ -37,6 +37,8 @@ private:
 		54.7 / 1000.0,
 	};
 
+	HANDLE notify_event;
+
 	bool sound_enable_flag = false;
 
 	CH_TYPE ch_type;
@@ -57,18 +59,39 @@ private:
 
 	uintptr_t stream_thread_handle = NULL;
 
-//#define BUFFER_NUM 2//ƒXƒgƒŠ[ƒ~ƒ“ƒOƒoƒbƒtƒ@‚Ì”
-	bool buffer_no_latch = false;//false‚È‚çwave_data_buffer_1, true‚È‚çwave_data_buffer_2
+//#define BUFFER_NUM 2//ã‚¹ãƒˆãƒªãƒ¼ãƒŸãƒ³ã‚°ãƒãƒƒãƒ•ã‚¡ã®æ•°
+	//bool buffer_no_latch = false;//falseãªã‚‰wave_data_buffer_1, trueãªã‚‰wave_data_buffer_2
+	uint32_t current_buffer_no = 0;
 	size_t wave_data_size;
 	uint8_t* wave_data_buffer_1;
 	uint8_t* wave_data_buffer_2;
+	uint8_t* wave_data_buffer_3;
 
-	bool current_data_ready_flag = false;//‹Ÿ‹‹—pƒoƒbƒtƒ@‚Éƒf[ƒ^‚ª‚ ‚é‚©
-	uint8_t* current_create_wave_data;//ƒf[ƒ^‹Ÿ‹‹—p‚Ìƒoƒbƒtƒ@
+	bool current_data_ready_flag = false;//ä¾›çµ¦ç”¨ãƒãƒƒãƒ•ã‚¡ã«ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ã‹
+	uint8_t* current_create_wave_data;//ãƒ‡ãƒ¼ã‚¿ä¾›çµ¦ç”¨ã®ãƒãƒƒãƒ•ã‚¡
 
 	static unsigned int __stdcall play_thread_func(PVOID pv);
 
-	void create_wave_data___none() {//–³‰¹‚ğ¶¬‚·‚é
+	void notify_data_ready() {
+		SetEvent(notify_event);
+		current_data_ready_flag = true;
+	}
+
+	//è§’åº¦ã®æ­£è¦åŒ–ã‚’ã™ã‚‹
+	float angle_normalize(float angle) {
+		if (angle >= (D3DX_PI * 2)) {
+			int div = static_cast<int>(angle / (D3DX_PI * 2));
+			angle -= (div * (D3DX_PI * 2));
+
+			if (angle < 0.0f) {
+				angle = (D3DX_PI * 2) + (angle);
+			}
+		}
+
+		return angle;
+	}
+
+	void create_wave_data___none() {//ç„¡éŸ³ã‚’ç”Ÿæˆã™ã‚‹
 		mtx.lock();
 
 		short* p;
@@ -78,7 +101,7 @@ private:
 			p[i] = 0;
 		}
 
-		current_data_ready_flag = true;
+		notify_data_ready();
 
 		mtx.unlock();
 	}
@@ -91,26 +114,27 @@ private:
 	//
 	//
 	//	for (size_t i = 0; i < (wave_data_size / 2); i++) {
-	//		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
+	//		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//æ³¢é•·
 	//		p[i] = (short)(SHRT_MAX * sinf(i * D3DX_PI / (wave_1cycle_length / 2)));
 	//	}
 	//
-	//	current_data_ready_flag = true;
+	//	notify_data_ready();
 	//
 	//	mtx.unlock();
 	//}
 
-	//ƒfƒ…[ƒeƒB”ä12.5%
+
+	float prev_angle_mod___square_wave_12_5 = 0.0f;
+	//ãƒ‡ãƒ¥ãƒ¼ãƒ†ã‚£æ¯”12.5%
 	void create_wave_data___square_wave_12_5(float freq, uint8_t volume_4bit) {
 		mtx.lock();
 
 		short* p;
 		p = (short*)current_create_wave_data;
 
-
+		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//æ³¢é•·
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.92387953251128675612818318939679f) {//0.92387953251128675612818318939679 = sin(67.5)
+			if (sinf(prev_angle_mod___square_wave_12_5 + i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.92387953251128675612818318939679f) {//0.92387953251128675612818318939679 = sin(67.5)
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
@@ -118,12 +142,16 @@ private:
 			}
 		}
 
-		current_data_ready_flag = true;
+		prev_angle_mod___square_wave_12_5 = prev_angle_mod___square_wave_12_5 + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
+		angle_normalize(prev_angle_mod___square_wave_12_5);
+
+		notify_data_ready();
 
 		mtx.unlock();
 	}
 
-	//ƒfƒ…[ƒeƒB”ä25%
+	float prev_angle_mod___square_wave_25 = 0.0f;
+	//ãƒ‡ãƒ¥ãƒ¼ãƒ†ã‚£æ¯”25%
 	void create_wave_data___square_wave_25(float freq, uint8_t volume_4bit) {
 		mtx.lock();
 
@@ -131,9 +159,9 @@ private:
 		p = (short*)current_create_wave_data;
 
 
+		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//æ³¢é•·
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.5f) {
+			if (sinf(prev_angle_mod___square_wave_25 + i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.5f) {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
@@ -141,12 +169,16 @@ private:
 			}
 		}
 
-		current_data_ready_flag = true;
+		prev_angle_mod___square_wave_25 = prev_angle_mod___square_wave_25 + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
+		angle_normalize(prev_angle_mod___square_wave_25);
+
+		notify_data_ready();
 
 		mtx.unlock();
 	}
 
-	//ƒfƒ…[ƒeƒB”ä50%
+	float prev_angle_mod___square_wave_50 = 0.0f;
+	//ãƒ‡ãƒ¥ãƒ¼ãƒ†ã‚£æ¯”50%
 	void create_wave_data___square_wave_50(float freq, uint8_t volume_4bit) {
 		mtx.lock();
 
@@ -154,9 +186,9 @@ private:
 		p = (short*)current_create_wave_data;
 
 
+		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//æ³¢é•·
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.0f) {
+			if (sinf(prev_angle_mod___square_wave_50 + i * D3DX_PI / (wave_1cycle_length / 2)) >= 0.0f) {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
@@ -164,12 +196,16 @@ private:
 			}
 		}
 
-		current_data_ready_flag = true;
+		prev_angle_mod___square_wave_50 = prev_angle_mod___square_wave_50 + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
+		angle_normalize(prev_angle_mod___square_wave_50);
+
+		notify_data_ready();
 
 		mtx.unlock();
 	}
 
-	//ƒfƒ…[ƒeƒB”ä75%
+	float prev_angle_mod___square_wave_75 = 0.0f;
+	//ãƒ‡ãƒ¥ãƒ¼ãƒ†ã‚£æ¯”75%
 	void create_wave_data___square_wave_75(float freq, uint8_t volume_4bit) {
 		mtx.lock();
 
@@ -177,9 +213,9 @@ private:
 		p = (short*)current_create_wave_data;
 
 
+		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//æ³¢é•·
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
-			if (sinf(i * D3DX_PI / (wave_1cycle_length / 2)) <= -0.5f) {
+			if (sinf(prev_angle_mod___square_wave_75 + i * D3DX_PI / (wave_1cycle_length / 2)) <= -0.5f) {
 				p[i] = ((double)volume_4bit / (double)0x0F) * SHRT_MAX;
 			}
 			else {
@@ -187,7 +223,10 @@ private:
 			}
 		}
 
-		current_data_ready_flag = true;
+		prev_angle_mod___square_wave_75 = prev_angle_mod___square_wave_75 + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
+		angle_normalize(prev_angle_mod___square_wave_75);
+
+		notify_data_ready();
 
 		mtx.unlock();
 	}
@@ -226,7 +265,8 @@ private:
 	//	((SHRT_MAX) / 0x0E) * 0xD,
 	//	SHRT_MAX,
 	//};
-	//”gŒ`ƒƒ‚ƒŠ
+	float prev_angle_mod___waveform_memory = 0.0f;
+	//æ³¢å½¢ãƒ¡ãƒ¢ãƒª
 	void create_wave_data___waveform_memory(float freq, uint8_t volume_4bit) {
 		mtx.lock();
 	
@@ -239,13 +279,14 @@ private:
 			wave_data_4bitx32_list[(i * 2) + 1] = (CH3__0xFF30_0xFF3F[i] & 0b1111);
 		}
 
+		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//æ³¢é•·
 		for (size_t i = 0; i < (wave_data_size / 2); i++) {
-			float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
-
 			float angle = (i * D3DX_PI / (wave_1cycle_length / 2));
-			while (angle >= (D3DX_PI * 2)) {
-				angle -= (D3DX_PI * 2);
-			}
+			angle += prev_angle_mod___waveform_memory;
+			angle = angle_normalize(angle);
+			//while (angle >= (D3DX_PI * 2)) {
+			//	angle -= (D3DX_PI * 2);
+			//}
 
 			uint32_t index;
 			if (angle < ((D3DX_PI * 2) / 32.0f)) {
@@ -348,7 +389,10 @@ private:
 			p[i] = ((double)volume_4bit / (double)0x0F) * (WAVE_4BIT_DATA_TABLE[wave_data_4bitx32_list[index]]);
 		}
 
-		current_data_ready_flag = true;
+		prev_angle_mod___waveform_memory = prev_angle_mod___waveform_memory + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
+		angle_normalize(prev_angle_mod___waveform_memory);
+
+		notify_data_ready();
 
 		mtx.unlock();
 	}
@@ -361,7 +405,7 @@ private:
 		short* p;
 		p = (short*)current_create_wave_data;
 
-		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//”g’·
+		float wave_1cycle_length = wave_format.nSamplesPerSec / freq;//æ³¢é•·
 
 		size_t i = 0;
 		for (;;) {
@@ -385,7 +429,7 @@ private:
 
 	create_noise_exit:
 
-		current_data_ready_flag = true;
+		notify_data_ready();
 
 		mtx.unlock();
 	}
@@ -393,16 +437,29 @@ private:
 	uint8_t* consume_stream_buffer__th() {
 		uint8_t* new_buffer_ptr;
 
-		if (buffer_no_latch == false) {
+		//if (buffer_no_latch == false) {
+		//	new_buffer_ptr = wave_data_buffer_1;
+		//}
+		//else {
+		//	new_buffer_ptr = wave_data_buffer_2;
+		//}
+		if (current_buffer_no == 0) {
 			new_buffer_ptr = wave_data_buffer_1;
 		}
-		else {
+		else if (current_buffer_no == 1) {
 			new_buffer_ptr = wave_data_buffer_2;
+		}
+		else {
+			new_buffer_ptr = wave_data_buffer_3;
 		}
 
 		memcpy(new_buffer_ptr, current_create_wave_data, wave_data_size);
 
-		buffer_no_latch = !buffer_no_latch;
+		//buffer_no_latch = !buffer_no_latch;
+		current_buffer_no++;
+		if (current_buffer_no >= 3) {
+			current_buffer_no = 0;
+		}
 
 		current_data_ready_flag = false;
 
@@ -411,8 +468,8 @@ private:
 
 public:
 
-	bool left_sound_ON_flag = true;//¶‚ÌƒTƒEƒ“ƒh‚ª—LŒø‚È‚çtrue
-	bool right_sound_ON_flag = true;//‰E‚ÌƒTƒEƒ“ƒh‚ª—LŒø‚È‚çtrue
+	bool left_sound_ON_flag = true;//å·¦ã®ã‚µã‚¦ãƒ³ãƒ‰ãŒæœ‰åŠ¹ãªã‚‰true
+	bool right_sound_ON_flag = true;//å³ã®ã‚µã‚¦ãƒ³ãƒ‰ãŒæœ‰åŠ¹ãªã‚‰true
 
 	//====================================================
 
@@ -422,7 +479,7 @@ public:
 	double CH1_length_counter = 0.0;
 
 	double CH1_envelope_counter = 0.0;
-	uint8_t CH1_envelope_volume = 0x0F;//0x0F‚ªÅ‘å0x00‚ª–³‰¹
+	uint8_t CH1_envelope_volume = 0x0F;//0x0FãŒæœ€å¤§0x00ãŒç„¡éŸ³
 
 	uint8_t CH1__0xFF10 = 0;
 	uint8_t CH1__0xFF11 = 0;
@@ -435,7 +492,7 @@ public:
 	double CH2_length_counter = 0.0;
 
 	double CH2_envelope_counter = 0.0;
-	uint8_t CH2_envelope_volume = 0x0F;//0x0F‚ªÅ‘å0x00‚ª–³‰¹
+	uint8_t CH2_envelope_volume = 0x0F;//0x0FãŒæœ€å¤§0x00ãŒç„¡éŸ³
 
 	uint8_t CH2__0xFF16 = 0;
 	uint8_t CH2__0xFF17 = 0;
@@ -459,7 +516,7 @@ public:
 	double CH4_length_counter = 0.0;
 
 	double CH4_envelope_counter = 0.0;
-	uint8_t CH4_envelope_volume = 0x0F;//0x0F‚ªÅ‘å0x00‚ª–³‰¹
+	uint8_t CH4_envelope_volume = 0x0F;//0x0FãŒæœ€å¤§0x00ãŒç„¡éŸ³
 
 	uint8_t CH4__0xFF20 = 0;
 	uint8_t CH4__0xFF21 = 0;
@@ -472,9 +529,9 @@ public:
 		HRESULT hr;
 
 		wave_format.wFormatTag = WAVE_FORMAT_PCM;
-		wave_format.nChannels = 1;//ƒ`ƒƒƒ“ƒlƒ‹”
-		wave_format.wBitsPerSample = 16;//‚PƒTƒ“ƒvƒ‹‚ ‚½‚è‚Ìƒrƒbƒg”
-		wave_format.nSamplesPerSec = 44100;//ƒTƒ“ƒvƒŠƒ“ƒOü”g”
+		wave_format.nChannels = 1;//ãƒãƒ£ãƒ³ãƒãƒ«æ•°
+		wave_format.wBitsPerSample = 16;//ï¼‘ã‚µãƒ³ãƒ—ãƒ«ã‚ãŸã‚Šã®ãƒ“ãƒƒãƒˆæ•°
+		wave_format.nSamplesPerSec = 44100;//ã‚µãƒ³ãƒ—ãƒªãƒ³ã‚°å‘¨æ³¢æ•°
 		wave_format.nBlockAlign = wave_format.wBitsPerSample / 8 * wave_format.nChannels;
 		wave_format.nAvgBytesPerSec = wave_format.nSamplesPerSec * wave_format.nBlockAlign;
 
@@ -485,11 +542,12 @@ public:
 		}
 
 		//wave_data_size = (wave_format.nAvgBytesPerSec * 1) / 60;
-		//wave_data_size = (wave_format.nAvgBytesPerSec * 1) / 20;//‚·‚±‚µ’·‚ß‚Éƒf[ƒ^‚ğ‚½‚¹‚é(1/20‚ª‚È‚ß‚ç‚©)
-		wave_data_size = (wave_format.nAvgBytesPerSec * 1) / 20;
-		//1/60•b•ª‚Ìƒf[ƒ^
+		//wave_data_size = (wave_format.nAvgBytesPerSec * 1) / 20;//ã™ã“ã—é•·ã‚ã«ãƒ‡ãƒ¼ã‚¿ã‚’æŒãŸã›ã‚‹(1/20ãŒãªã‚ã‚‰ã‹)
+		wave_data_size = (wave_format.nAvgBytesPerSec * 1) / 50;
+		//1/60ç§’åˆ†ã®ãƒ‡ãƒ¼ã‚¿
 		wave_data_buffer_1 = (uint8_t*)malloc(wave_data_size);
 		wave_data_buffer_2 = (uint8_t*)malloc(wave_data_size);
+		wave_data_buffer_3 = (uint8_t*)malloc(wave_data_size);
 		current_create_wave_data = (uint8_t*)malloc(wave_data_size);
 
 		unsigned int thread_ID;
@@ -501,12 +559,16 @@ public:
 			0,
 			&thread_ID
 		);
+
+		notify_event = CreateEvent(NULL, FALSE, FALSE, NULL);
 	}
 
 	~Channel() {
 		mtx.lock();
 		stop_flag = true;
 		mtx.unlock();
+
+		SetEvent(notify_event);
 
 		if (stream_thread_handle != NULL) {
 			DWORD exit_code;
@@ -526,9 +588,12 @@ public:
 
 		free(wave_data_buffer_1);
 		free(wave_data_buffer_2);
+		free(wave_data_buffer_3);
 		free(current_create_wave_data);
 
 		delete callback;
+
+		CloseHandle(notify_event);
 	}
 
 	//const float NOISE_FREQ1_TABLE[8] = {
@@ -545,18 +610,18 @@ public:
 	void update(uint64_t c_cycle) {
 		if (ch_type == CH_TYPE::CH1) {
 			const uint8_t sweep_interval_3bit = ((CH1__0xFF10 >> 4) & 0b111);
-			if (sweep_interval_3bit != 0) {//ƒXƒC[ƒv‚·‚éê‡
+			if (sweep_interval_3bit != 0) {//ã‚¹ã‚¤ãƒ¼ãƒ—ã™ã‚‹å ´åˆ
 				const uint8_t SWEEP_SHIFT_VALUE = (CH1__0xFF10 & 0b111);
 				const double SWEEP_SPEED = SWEEP_INTERVAL_TIME_LIST[sweep_interval_3bit - 1];
 				CH1_sweep_counter += (1.0 / CPU_FREQ_D) * c_cycle;
 				while (CH1_sweep_counter >= SWEEP_SPEED) {
 					CH1_sweep_counter -= SWEEP_SPEED;
 
-					if ((CH1__0xFF10 & 0b1000) == 0) {//ü”g”‚ª‘å‚«‚­‚È‚é‚Æ‚«
+					if ((CH1__0xFF10 & 0b1000) == 0) {//å‘¨æ³¢æ•°ãŒå¤§ãããªã‚‹ã¨ã
 						//CH1_sweep_freq_f = CH1_sweep_freq_f + (CH1_sweep_freq_f / powf(2, (float)SWEEP_SHIFT_VALUE));
 						CH1_sweep_freq_f = CH1_sweep_freq_f + (CH1_sweep_freq_f / (float)(1 << SWEEP_SHIFT_VALUE));
 					}
-					else {//ü”g”‚ª¬‚³‚­‚È‚é‚Æ‚«
+					else {//å‘¨æ³¢æ•°ãŒå°ã•ããªã‚‹ã¨ã
 						//CH1_sweep_freq_f = CH1_sweep_freq_f - (CH1_sweep_freq_f / powf(2, (float)SWEEP_SHIFT_VALUE));
 						CH1_sweep_freq_f = CH1_sweep_freq_f - (CH1_sweep_freq_f / (float)(1 << SWEEP_SHIFT_VALUE));
 					}
@@ -564,7 +629,7 @@ public:
 
 				freq_f = CH1_sweep_freq_f;
 			}
-			else {//ƒXƒC[ƒv‚µ‚È‚¢ê‡
+			else {//ã‚¹ã‚¤ãƒ¼ãƒ—ã—ãªã„å ´åˆ
 				uint32_t freq = (CH1__0xFF13 | ((CH1__0xFF14 & 0b00000111) << 8));
 				freq_f = 131072.0f / (2048.0f - (float)freq);
 			}
@@ -577,12 +642,12 @@ public:
 				while (CH1_envelope_counter >= ENVELOPE_SPEED) {
 					CH1_envelope_counter -= ENVELOPE_SPEED;
 
-					if ((CH1__0xFF12 & 0b00001000) != 0) {//‘å‚«‚­‚È‚Á‚Ä‚¢‚­
+					if ((CH1__0xFF12 & 0b00001000) != 0) {//å¤§ãããªã£ã¦ã„ã
 						if (CH1_envelope_volume < 0x0F) {
 							CH1_envelope_volume++;
 						}
 					}
-					else {//¬‚³‚­‚È‚Á‚Ä‚¢‚­
+					else {//å°ã•ããªã£ã¦ã„ã
 						if (CH1_envelope_volume > 0) {
 							CH1_envelope_volume--;
 						}
@@ -592,7 +657,7 @@ public:
 			}
 
 
-			if ((CH1__0xFF14 & 0b01000000) != 0) {//’·‚³ƒJƒEƒ“ƒ^—LŒøƒtƒ‰ƒO‚ª—LŒø‚È‚Æ‚«
+			if ((CH1__0xFF14 & 0b01000000) != 0) {//é•·ã•ã‚«ã‚¦ãƒ³ã‚¿æœ‰åŠ¹ãƒ•ãƒ©ã‚°ãŒæœ‰åŠ¹ãªã¨ã
 				const uint8_t TMP_LENGTH = (CH1__0xFF11 & 0b00111111);
 				const double SOUND_LENGTH = (64.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
 				CH1_length_counter += (1.0 / CPU_FREQ_D) * c_cycle;
@@ -615,12 +680,12 @@ public:
 				while (CH2_envelope_counter >= ENVELOPE_SPEED) {
 					CH2_envelope_counter -= ENVELOPE_SPEED;
 
-					if ((CH2__0xFF17 & 0b00001000) != 0) {//‘å‚«‚­‚È‚Á‚Ä‚¢‚­
+					if ((CH2__0xFF17 & 0b00001000) != 0) {//å¤§ãããªã£ã¦ã„ã
 						if (CH2_envelope_volume < 0x0F) {
 							CH2_envelope_volume++;
 						}
 					}
-					else {//¬‚³‚­‚È‚Á‚Ä‚¢‚­
+					else {//å°ã•ããªã£ã¦ã„ã
 						if (CH2_envelope_volume > 0) {
 							CH2_envelope_volume--;
 						}
@@ -630,7 +695,7 @@ public:
 			}
 
 
-			if ((CH2__0xFF19 & 0b01000000) != 0) {//’·‚³ƒJƒEƒ“ƒ^—LŒøƒtƒ‰ƒO‚ª—LŒø‚È‚Æ‚«
+			if ((CH2__0xFF19 & 0b01000000) != 0) {//é•·ã•ã‚«ã‚¦ãƒ³ã‚¿æœ‰åŠ¹ãƒ•ãƒ©ã‚°ãŒæœ‰åŠ¹ãªã¨ã
 				const uint8_t TMP_LENGTH = (CH2__0xFF16 & 0b00111111);
 				const double SOUND_LENGTH = (64.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
 				CH2_length_counter += (1.0 / CPU_FREQ_D) * c_cycle;
@@ -645,7 +710,7 @@ public:
 			uint32_t freq = (CH3__0xFF1D | ((CH3__0xFF1E & 0b00000111) << 8));
 			freq_f = 65536.0f / (2048.0f - (float)freq);
 
-			if ((CH3__0xFF1E & 0b01000000) != 0) {//’·‚³ƒJƒEƒ“ƒ^—LŒøƒtƒ‰ƒO‚ª—LŒø‚È‚Æ‚«
+			if ((CH3__0xFF1E & 0b01000000) != 0) {//é•·ã•ã‚«ã‚¦ãƒ³ã‚¿æœ‰åŠ¹ãƒ•ãƒ©ã‚°ãŒæœ‰åŠ¹ãªã¨ã
 				const uint8_t TMP_LENGTH = CH3__0xFF1B;
 				const double SOUND_LENGTH = (256.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
 				CH3_length_counter += (1.0 / CPU_FREQ_D) * c_cycle;
@@ -673,12 +738,12 @@ public:
 				while (CH4_envelope_counter >= ENVELOPE_SPEED) {
 					CH4_envelope_counter -= ENVELOPE_SPEED;
 
-					if ((CH4__0xFF21 & 0b00001000) != 0) {//‘å‚«‚­‚È‚Á‚Ä‚¢‚­
+					if ((CH4__0xFF21 & 0b00001000) != 0) {//å¤§ãããªã£ã¦ã„ã
 						if (CH4_envelope_volume < 0x0F) {
 							CH4_envelope_volume++;
 						}
 					}
-					else {//¬‚³‚­‚È‚Á‚Ä‚¢‚­
+					else {//å°ã•ããªã£ã¦ã„ã
 						if (CH4_envelope_volume > 0) {
 							CH4_envelope_volume--;
 						}
@@ -688,7 +753,7 @@ public:
 			}
 
 
-			if ((CH4__0xFF23 & 0b01000000) != 0) {//’·‚³ƒJƒEƒ“ƒ^—LŒøƒtƒ‰ƒO‚ª—LŒø‚È‚Æ‚«
+			if ((CH4__0xFF23 & 0b01000000) != 0) {//é•·ã•ã‚«ã‚¦ãƒ³ã‚¿æœ‰åŠ¹ãƒ•ãƒ©ã‚°ãŒæœ‰åŠ¹ãªã¨ã
 				const uint8_t TMP_LENGTH = (CH4__0xFF20 & 0b00111111);
 				const double SOUND_LENGTH = (64.0 - (double)TMP_LENGTH) * (1.0 / 256.0);
 				CH4_length_counter += (1.0 / CPU_FREQ_D) * c_cycle;
@@ -723,10 +788,10 @@ public:
 				}
 			}
 			else {
-				create_wave_data___none();//–³‰¹
+				create_wave_data___none();//ç„¡éŸ³
 			}
 
-			//create_wave_data___none();//–³‰¹
+			//create_wave_data___none();//ç„¡éŸ³
 		}
 		else if (ch_type == CH_TYPE::CH2) {
 			if (sound_enable_flag == true) {
@@ -745,10 +810,10 @@ public:
 				}
 			}
 			else {
-				create_wave_data___none();//–³‰¹
+				create_wave_data___none();//ç„¡éŸ³
 			}
 
-			//create_wave_data___none();//–³‰¹
+			//create_wave_data___none();//ç„¡éŸ³
 		}
 		else if (ch_type == CH_TYPE::CH3) {
 			if (sound_enable_flag == true) {
@@ -770,25 +835,25 @@ public:
 				create_wave_data___waveform_memory(freq_f, volume_4bit);
 			}
 			else {
-				create_wave_data___none();//–³‰¹
+				create_wave_data___none();//ç„¡éŸ³
 			}
 
-			//create_wave_data___none();//–³‰¹
+			//create_wave_data___none();//ç„¡éŸ³
 		}
 		else {//CH4
 			if (sound_enable_flag == true) {
 				create_wave_data___noise(freq_f, (CH4_envelope_volume & 0b1111));
 			}
 			else {
-				create_wave_data___none();//–³‰¹
+				create_wave_data___none();//ç„¡éŸ³
 			}
 
-			//create_wave_data___none();//–³‰¹
+			//create_wave_data___none();//ç„¡éŸ³
 		}
 	}
 
 	void execute_sleep() {
-		create_wave_data___none();//–³‰¹
+		create_wave_data___none();//ç„¡éŸ³
 	}
 
 	bool is_playing() {

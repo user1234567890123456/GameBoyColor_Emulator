@@ -1,4 +1,4 @@
-#include "Channel.h"
+ï»¿#include "Channel.h"
 
 unsigned int __stdcall Channel::play_thread_func(PVOID pv) {
 	//M_debug_printf("Channel::play_thread_func() start\n");
@@ -7,7 +7,8 @@ unsigned int __stdcall Channel::play_thread_func(PVOID pv) {
 
 	channel_ptr->mtx.lock();
 	//channel_ptr->isPlaying = true;
-	channel_ptr->buffer_no_latch = false;
+	//channel_ptr->buffer_no_latch = false;
+	channel_ptr->current_buffer_no = 0;
 	channel_ptr->source_voice->Start();
 	channel_ptr->mtx.unlock();
 
@@ -24,19 +25,24 @@ unsigned int __stdcall Channel::play_thread_func(PVOID pv) {
 
 		XAUDIO2_VOICE_STATE state;
 		channel_ptr->source_voice->GetState(&state);
-		if (state.BuffersQueued < 2) {//ƒLƒ…[‚Í2ŒÂ‚Ü‚Å
+		if (state.BuffersQueued < 3) {//ã‚­ãƒ¥ãƒ¼ã¯3å€‹ã¾ã§
+			//M_debug_printf("queue = %d\n", state.BuffersQueued);
+
+			if (channel_ptr->current_data_ready_flag == false) {//ä¾›çµ¦ãƒ‡ãƒ¼ã‚¿ãŒãªã„ã¨ãã¯ä¾›çµ¦ã•ã‚Œã‚‹ã®ã‚’å¾…ã¤
+				//M_debug_printf("queue wait...\n");
+				WaitForSingleObject(channel_ptr->notify_event, INFINITE);
+			}
+
 			channel_ptr->mtx.lock();
 
-			if (channel_ptr->current_data_ready_flag == true) {//‹Ÿ‹‹ƒf[ƒ^‚ª‚ ‚é‚Æ‚«
-				uint8_t* new_buffer_ptr = channel_ptr->consume_stream_buffer__th();
+			uint8_t* new_buffer_ptr = channel_ptr->consume_stream_buffer__th();
 
-				XAUDIO2_BUFFER submit = { 0 };
-				submit.AudioBytes = channel_ptr->wave_data_size;
-				submit.pAudioData = new_buffer_ptr;
-				submit.LoopCount = 0;
+			XAUDIO2_BUFFER submit = { 0 };
+			submit.AudioBytes = channel_ptr->wave_data_size;
+			submit.pAudioData = new_buffer_ptr;
+			submit.LoopCount = 0;
 
-				channel_ptr->source_voice->SubmitSourceBuffer(&submit);
-			}
+			channel_ptr->source_voice->SubmitSourceBuffer(&submit);
 
 			channel_ptr->mtx.unlock();
 		}
