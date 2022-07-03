@@ -36,9 +36,7 @@ void GameManager::execute_game_process()
 	}
 
 	if (gbx != nullptr) {
-		if (gbx->get_FATAL_ERROR_FLAG() == false) {
-			gbx->execute_all();
-		}
+		gbx->execute_all();
 	}
 	else {
 		MyDirectXDraw::draw_box_leftup(myDirectXSystem, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0xFF000000);

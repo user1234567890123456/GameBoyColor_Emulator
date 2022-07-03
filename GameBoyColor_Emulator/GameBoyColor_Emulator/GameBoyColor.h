@@ -61,7 +61,7 @@ private:
 
 
 #define SAVEDATA_FILE_EXT_NAME ".savdat"
-	FILE* savedata_fp;
+	FILE* savedata_fp = nullptr;
 
 
 #define BOOT_ROM_SIZE 0x100
@@ -2000,6 +2000,8 @@ private:
 		return;
 
 	create_gamedata_error:
+		savedata_fp = nullptr;
+
 		MessageBox(NULL, _T("セーブデータファイルの作成に失敗しました"), _T("ERROR"), MB_OK | MB_ICONERROR);
 
 		FATAL_ERROR_FLAG = true;
@@ -2009,6 +2011,10 @@ private:
 	ゲームのデータをファイルに保存する
 	*/
 	void save_gamedata() {
+		if (savedata_fp == nullptr) {
+			return;
+		}
+
 		if (cart_mbc_type != CART_MBC_TYPE::MBC2 && Main::SRAM_size == 0) {//MBCが2でなくなおかつSRAMのサイズが0のとき
 			return;
 		}
@@ -2075,6 +2081,10 @@ private:
 	}
 
 	void load_gamedata() {
+		if (savedata_fp == nullptr) {
+			return;
+		}
+
 		if (cart_mbc_type != CART_MBC_TYPE::MBC2 && Main::SRAM_size == 0) {//MBCが2でなくなおかつSRAMのサイズが0のとき
 			return;
 		}
@@ -2136,6 +2146,10 @@ private:
 	}
 
 	void close_savedata_file() {
+		if (savedata_fp == nullptr) {
+			return;
+		}
+
 		fclose(savedata_fp);
 	}
 
