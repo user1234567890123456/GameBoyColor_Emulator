@@ -27,7 +27,10 @@ public:
 
 
 
-	static bool Sound_Mute_Flag;
+	static bool Sound_Channel1_Mute_Flag;
+	static bool Sound_Channel2_Mute_Flag;
+	static bool Sound_Channel3_Mute_Flag;
+	static bool Sound_Channel4_Mute_Flag;
 
 
 	static bool Show_FPS_Flag;

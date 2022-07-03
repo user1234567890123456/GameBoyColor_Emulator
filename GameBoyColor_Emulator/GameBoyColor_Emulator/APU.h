@@ -20,7 +20,7 @@ private:
 public:
 	bool all_channel_enable_flag = false;
 
-	APU() {
+	APU(bool ch1_mute_flag, bool ch2_mute_flag, bool ch3_mute_flag, bool ch4_mute_flag) {
 		HRESULT hr;
 		if (FAILED(hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED))) {
 			M_debug_printf("ERROR CoInitializeEx\n");
@@ -36,9 +36,33 @@ public:
 		mastering_voice->SetVolume(0.03);
 
 		ch1 = new Channel(Channel::CH_TYPE::CH1, xaudio);
+		if (ch1_mute_flag == true) {
+			ch1->get_source_voice_ptr()->SetVolume(0.0f);
+		}
+		else {
+			ch1->get_source_voice_ptr()->SetVolume(1.0f);
+		}
 		ch2 = new Channel(Channel::CH_TYPE::CH2, xaudio);
+		if (ch2_mute_flag == true) {
+			ch2->get_source_voice_ptr()->SetVolume(0.0f);
+		}
+		else {
+			ch2->get_source_voice_ptr()->SetVolume(1.0f);
+		}
 		ch3 = new Channel(Channel::CH_TYPE::CH3, xaudio);
+		if (ch3_mute_flag == true) {
+			ch3->get_source_voice_ptr()->SetVolume(0.0f);
+		}
+		else {
+			ch3->get_source_voice_ptr()->SetVolume(1.0f);
+		}
 		ch4 = new Channel(Channel::CH_TYPE::CH4, xaudio);
+		if (ch4_mute_flag == true) {
+			ch4->get_source_voice_ptr()->SetVolume(0.0f);
+		}
+		else {
+			ch4->get_source_voice_ptr()->SetVolume(1.0f);
+		}
 	}
 
 	~APU() {

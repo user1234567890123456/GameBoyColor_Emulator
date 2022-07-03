@@ -39,7 +39,10 @@ uint32_t Main::PGM_size = 0;
 uint32_t Main::SRAM_size = 0;
 Main::GAME_HARDWARE_TYPE Main::game_hardware_type = Main::GAME_HARDWARE_TYPE::GAMEBOY;
 
-bool Main::Sound_Mute_Flag = false;
+bool Main::Sound_Channel1_Mute_Flag = false;
+bool Main::Sound_Channel2_Mute_Flag = false;
+bool Main::Sound_Channel3_Mute_Flag = false;
+bool Main::Sound_Channel4_Mute_Flag = false;
 
 bool Main::Show_FPS_Flag = true;
 
@@ -121,6 +124,8 @@ int parse_search_4byte_value(uint16_t*, TCHAR*, uint32_t);
 void clear_found_address_info_list();
 
 void process_first_search_result();
+
+void update_sound_mute_setting();
 
 
 void __app_safe_exit_error__() {
@@ -757,18 +762,6 @@ LRESULT CALLBACK WinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_param)
 			SetMenuItemInfo(hmenu, ID_40009, FALSE, &menuInfo);
 
 			return 0;
-		case ID_40011:
-			Main::Sound_Mute_Flag = !Main::Sound_Mute_Flag;
-
-			if (Main::Sound_Mute_Flag == false) {
-				menuInfo.fState = MFS_UNCHECKED;
-			}
-			else {
-				menuInfo.fState = MFS_CHECKED;
-			}
-			SetMenuItemInfo(hmenu, ID_40011, FALSE, &menuInfo);
-
-			return 0;
 		case ID_40007:
 			if (My_Input::get_instance_ptr() != nullptr){
 				My_Input::get_instance_ptr()->find_and_update_pad();
@@ -792,6 +785,92 @@ LRESULT CALLBACK WinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_param)
 				SWP_NOMOVE | SWP_NOSIZE);
 
 			//Main::Cheat_Window_Exist_Flag = true;
+
+			return 0;
+		case ID_40011:
+			Main::Sound_Channel1_Mute_Flag = true;
+			Main::Sound_Channel2_Mute_Flag = true;
+			Main::Sound_Channel3_Mute_Flag = true;
+			Main::Sound_Channel4_Mute_Flag = true;
+
+			menuInfo.fState = MFS_CHECKED;
+			SetMenuItemInfo(hmenu, ID_40013, FALSE, &menuInfo);
+			SetMenuItemInfo(hmenu, ID_40014, FALSE, &menuInfo);
+			SetMenuItemInfo(hmenu, ID_40015, FALSE, &menuInfo);
+			SetMenuItemInfo(hmenu, ID_40016, FALSE, &menuInfo);
+
+			update_sound_mute_setting();
+
+			return 0;
+		case ID_40012:
+			Main::Sound_Channel1_Mute_Flag = false;
+			Main::Sound_Channel2_Mute_Flag = false;
+			Main::Sound_Channel3_Mute_Flag = false;
+			Main::Sound_Channel4_Mute_Flag = false;
+
+			menuInfo.fState = MFS_UNCHECKED;
+			SetMenuItemInfo(hmenu, ID_40013, FALSE, &menuInfo);
+			SetMenuItemInfo(hmenu, ID_40014, FALSE, &menuInfo);
+			SetMenuItemInfo(hmenu, ID_40015, FALSE, &menuInfo);
+			SetMenuItemInfo(hmenu, ID_40016, FALSE, &menuInfo);
+
+			update_sound_mute_setting();
+
+			return 0;
+		case ID_40013:
+			Main::Sound_Channel1_Mute_Flag = !Main::Sound_Channel1_Mute_Flag;
+			if (Main::Sound_Channel1_Mute_Flag == true) {
+				menuInfo.fState = MFS_CHECKED;
+			}
+			else {
+				menuInfo.fState = MFS_UNCHECKED;
+			}
+
+			SetMenuItemInfo(hmenu, ID_40013, FALSE, &menuInfo);
+
+			update_sound_mute_setting();
+
+			return 0;
+		case ID_40014:
+			Main::Sound_Channel2_Mute_Flag = !Main::Sound_Channel2_Mute_Flag;
+			if (Main::Sound_Channel2_Mute_Flag == true) {
+				menuInfo.fState = MFS_CHECKED;
+			}
+			else {
+				menuInfo.fState = MFS_UNCHECKED;
+			}
+
+			SetMenuItemInfo(hmenu, ID_40014, FALSE, &menuInfo);
+
+			update_sound_mute_setting();
+
+			return 0;
+		case ID_40015:
+			Main::Sound_Channel3_Mute_Flag = !Main::Sound_Channel3_Mute_Flag;
+			if (Main::Sound_Channel3_Mute_Flag == true) {
+				menuInfo.fState = MFS_CHECKED;
+			}
+			else {
+				menuInfo.fState = MFS_UNCHECKED;
+			}
+
+			SetMenuItemInfo(hmenu, ID_40015, FALSE, &menuInfo);
+
+			update_sound_mute_setting();
+
+			return 0;
+		case ID_40016:
+			Main::Sound_Channel4_Mute_Flag = !Main::Sound_Channel4_Mute_Flag;
+			if (Main::Sound_Channel4_Mute_Flag == true) {
+				menuInfo.fState = MFS_CHECKED;
+			}
+			else {
+				menuInfo.fState = MFS_UNCHECKED;
+			}
+
+			SetMenuItemInfo(hmenu, ID_40016, FALSE, &menuInfo);
+
+			update_sound_mute_setting();
 
 			return 0;
 		}
@@ -1670,6 +1749,42 @@ void get_resident_cheat_code_str(TCHAR* ret_buf, uint32_t* resident_cheat_code_p
 			}
 			target_4bit_value &= 0b1111;
 			ret_buf[i * 8 + j] = _T(uint8_to_charhex(target_4bit_value));
+		}
+	}
+}
+
+void update_sound_mute_setting() {
+	GameBoyColor* gameboy_ptr = GameManager::get_instance_ptr()->get_gameboy();
+	if (gameboy_ptr != nullptr) {
+		APU* apu_ptr = gameboy_ptr->get_apu_ptr();
+		if (apu_ptr != nullptr) {
+			if (Main::Sound_Channel1_Mute_Flag == true) {
+				apu_ptr->get_channel_1()->get_source_voice_ptr()->SetVolume(0.0f);
+			}
+			else {
+				apu_ptr->get_channel_1()->get_source_voice_ptr()->SetVolume(1.0f);
+			}
+
+			if (Main::Sound_Channel2_Mute_Flag == true) {
+				apu_ptr->get_channel_2()->get_source_voice_ptr()->SetVolume(0.0f);
+			}
+			else {
+				apu_ptr->get_channel_2()->get_source_voice_ptr()->SetVolume(1.0f);
+			}
+
+			if (Main::Sound_Channel3_Mute_Flag == true) {
+				apu_ptr->get_channel_3()->get_source_voice_ptr()->SetVolume(0.0f);
+			}
+			else {
+				apu_ptr->get_channel_3()->get_source_voice_ptr()->SetVolume(1.0f);
+			}
+
+			if (Main::Sound_Channel4_Mute_Flag == true) {
+				apu_ptr->get_channel_4()->get_source_voice_ptr()->SetVolume(0.0f);
+			}
+			else {
+				apu_ptr->get_channel_4()->get_source_voice_ptr()->SetVolume(1.0f);
+			}
 		}
 	}
 }

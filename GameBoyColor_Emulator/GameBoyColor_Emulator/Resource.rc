@@ -57,14 +57,19 @@ BEGIN
         MENUITEM "ROMファイルを読み込む",                ID_40003
         MENUITEM "ROM情報",                       ID_40006
     END
-    POPUP "サウンド"
-    BEGIN
-        MENUITEM "ミュートにする",                     ID_40011
-    END
     POPUP "設定"
     BEGIN
         MENUITEM "FPSを表示する",                    ID_40008
         MENUITEM "ゲームパッドの更新",                   ID_40007
+    END
+    POPUP "サウンド"
+    BEGIN
+        MENUITEM "全チャンネルミュート",                  ID_40011
+        MENUITEM "全チャンネルミュート解除",                ID_40012
+        MENUITEM "チャンネル1(矩形波1)ミュート",            ID_40013
+        MENUITEM "チャンネル2(矩形波2)ミュート",            ID_40014
+        MENUITEM "チャンネル3(波形メモリ)ミュート",           ID_40015
+        MENUITEM "チャンネル4(ノイズ)ミュート",             ID_40016
     END
     POPUP "デバッグ"
     BEGIN

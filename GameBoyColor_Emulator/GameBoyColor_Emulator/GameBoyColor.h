@@ -7306,7 +7306,7 @@ public:
 
 		Main::ROM_loaded_flag = true;
 
-		apu = new APU();
+		apu = new APU(Main::Sound_Channel1_Mute_Flag, Main::Sound_Channel2_Mute_Flag, Main::Sound_Channel3_Mute_Flag, Main::Sound_Channel4_Mute_Flag);
 
 		booting_flag = true;
 
@@ -7347,6 +7347,10 @@ public:
 
 	bool get_FATAL_ERROR_FLAG() {
 		return FATAL_ERROR_FLAG;
+	}
+
+	APU* get_apu_ptr() {
+		return apu;
 	}
 
 	void apply_cheat_code_list(vector<uint32_t> &cheat_code_list) {
