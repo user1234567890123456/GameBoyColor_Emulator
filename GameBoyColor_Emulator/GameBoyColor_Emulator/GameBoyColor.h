@@ -1165,6 +1165,9 @@ private:
 				RTCレジスタの読み取りを実装する
 				*/
 				read_value = 0x00;
+				//M_debug_printf("[MBC3] 読み込み A000-BFFF - RTCレジスタ\n");
+				//M_debug_printf("PC:0x%04x A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+				//	gbx_register.PC, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROMのタイプがHuC1かつIRモードのとき) {
 				/*
@@ -1295,9 +1298,13 @@ private:
 		//=================================================================================
 		else if (read_address == 0xFF01) {//通信データレジスタ (R/W)
 			read_value = 0x00;
+
+			//M_debug_printf("読み込み 通信データレジスタ (R/W)\n");
 		}
 		else if (read_address == 0xFF02) {//通信制御レジスタ (R/W)
 			read_value = 0x00;
+
+			//M_debug_printf("読み込み 通信制御レジスタ (R/W)\n");
 		}
 		else {//通常読み取り
 			read_value = gbx_ram.RAM[read_address];
@@ -1507,6 +1514,10 @@ private:
 				}
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
+				//M_debug_printf("[MBC3] 書き込み 0000-1FFF - RAM/タイマー有効化フラグ\n");
+				//M_debug_printf("PC:0x%04x A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+				//	gbx_register.PC, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
+
 				if ((value & 0b00001111) == 0x0A) {
 					SRAM_Enable_Flag = true;
 					RTC_Enable_Flag = true;
@@ -1559,6 +1570,10 @@ private:
 				}
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
+				//M_debug_printf("[MBC3] 書き込み 2000-3FFF - ROMバンク番号\n");
+				//M_debug_printf("PC:0x%04x A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+				//	gbx_register.PC, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
+
 				rom_bank_no__low = (value & 0b01111111);
 				if (rom_bank_no__low == 0) {
 					rom_bank_no__low = 1;
@@ -1596,6 +1611,10 @@ private:
 				//何もしない
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC3) {
+				//M_debug_printf("[MBC3] 書き込み 4000-5FFF - RAMバンク/RTCレジスタの選択レジスタ\n");
+				//M_debug_printf("PC:0x%04x A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+				//	gbx_register.PC, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
+
 				if (0x00 <= value && value <= 0x03) {
 					bank_mode = BankMode::SRAM;
 					sram_bank_no = (value & 0b00000011);
@@ -1652,6 +1671,10 @@ private:
 				TODO
 				現在の時刻の保存を実装する
 				*/
+
+				//M_debug_printf("[MBC3] 書き込み 6000-7FFF - ラッチクロックデータ\n");
+				//M_debug_printf("PC:0x%04x A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+				//	gbx_register.PC, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC5) {
 				//何もしない
@@ -1671,6 +1694,10 @@ private:
 				TODO
 				RTCレジスタへの書き込みを実装する
 				*/
+
+				//M_debug_printf("[MBC3] 書き込み A000-BFFF - RTCレジスタ\n");
+				//M_debug_printf("PC:0x%04x A:0x%02x, BC:0x%04x, DE:0x%04x, HL:0x%04x, Flags:0x%02x, SP:0x%04x\n",
+				//	gbx_register.PC, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::HuC1 && bank_mode == BankMode::IR) {//ROMのタイプがHuC1かつIRモードのとき
 				if (value == 0x00) {
@@ -1693,7 +1720,8 @@ private:
 		}
 		else if (write_address == 0xFF46) {//DMA
 			uint16_t src_address = value << 8;
-			memcpy((void*)(&(gbx_ram.RAM[0xFE00])), (void*)(&(gbx_ram.RAM[src_address])), 40 * 4);
+			//memcpy((void*)(&(gbx_ram.RAM[0xFE00])), (void*)(&(gbx_ram.RAM[src_address])), 40 * 4);
+			My_Emulator_RAM_memcpy(0xFE00, src_address, 40 * 4);
 	
 			//サイクル数はすすめない //cpu_machine_cycle += 160;//160 M-cycle かかる
 		}
@@ -1960,9 +1988,13 @@ private:
 		//=================================================================================
 		else if (write_address == 0xFF01) {//通信データレジスタ (R/W)
 			gbx_ram.RAM[write_address] = 0x00;
+
+			//M_debug_printf("書き込み 通信データレジスタ (R/W)\n");
 		}
 		else if (write_address == 0xFF02) {//通信制御レジスタ (R/W)
 			gbx_ram.RAM[write_address] = 0x00;
+
+			//M_debug_printf("書き込み 通信制御レジスタ (R/W)\n");
 		}
 		else {//通常書き込み
 			gbx_ram.RAM[write_address] = value;
@@ -6506,8 +6538,14 @@ private:
 
 	void update_LCD_STAT() {
 		if ((gbx_ram.RAM[0xFF40] & 0b10000000) == 0) {//LCD有効フラグが無効のとき
-			//LCDがオフのときはVblank状態にしておく
-			set_LCD_STAT_mode_flag(1);//1: VBlank
+
+			////LCDがオフのときはVblank状態にしておく(※これは間違い？)
+			////set_LCD_STAT_mode_flag(1);//1: VBlank(※これは間違い？)
+
+			/*
+			LCDが無効のときはLCDのSTATレジスタのbit1とbit0を0にしておく必要がある
+			*/
+			set_LCD_STAT_mode_flag(0);
 
 			return;
 		}
@@ -7435,7 +7473,7 @@ public:
 				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
 				if (search_value == read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = search_value;
 
@@ -7448,7 +7486,7 @@ public:
 				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
 				if (search_value == read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = search_value;
 
@@ -7468,7 +7506,7 @@ public:
 				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
 				if (search_value != read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = search_value;
 
@@ -7481,7 +7519,7 @@ public:
 				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
 				if (search_value != read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = search_value;
 
@@ -7501,7 +7539,7 @@ public:
 				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
 				if (cmp_value < read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = read_value;
 
@@ -7514,7 +7552,7 @@ public:
 				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
 				if (cmp_value < read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = read_value;
 
@@ -7534,7 +7572,7 @@ public:
 				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
 				if (cmp_value > read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = read_value;
 
@@ -7547,7 +7585,7 @@ public:
 				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
 				if (cmp_value > read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = read_value;
 
@@ -7592,7 +7630,7 @@ public:
 				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
 				if (found_address_info_list[i].value == read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = read_value;
 
@@ -7605,7 +7643,7 @@ public:
 				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
 				if (found_address_info_list[i].value == read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = read_value;
 
@@ -7625,7 +7663,7 @@ public:
 				uint8_t read_value = read_RAM_8bit(found_address_info_list[i].address);
 				if (found_address_info_list[i].value != read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = read_value;
 
@@ -7638,7 +7676,7 @@ public:
 				uint16_t read_value = read_RAM_16bit(found_address_info_list[i].address);
 				if (found_address_info_list[i].value != read_value) {
 					found_info fi;
-					fi.address = i;
+					fi.address = found_address_info_list[i].address;
 					fi.prev_value = found_address_info_list[i].value;
 					fi.value = read_value;
 
@@ -7650,7 +7688,7 @@ public:
 		found_address_info_list = new_found_addr_i_l;
 	}
 
-
+	//uint64_t __debug_counter_1 = 0;
 	void execute_all() {
 		memset(backbuffer_isnobackgroundcolor_mask, false, sizeof(bool) * GBX_WIDTH * GBX_HEIGHT);
 		if (hardware_type == Main::GAME_HARDWARE_TYPE::GAMEBOY_COLOR) {
@@ -7701,7 +7739,7 @@ public:
 			//			gbx_register.PC, instruction_code, gbx_register.A, gbx_register.BC, gbx_register.DE, gbx_register.HL, gbx_register.Flags, gbx_register.SP);
 			//		//M_debug_printf("IME_Flag = %s, IE = 0x%02x, IF = 0x%02x\n", (IME_Flag == true) ? "true" : "false", gbx_ram.RAM[0xFFFF], gbx_ram.RAM[0xFF0F]);
 			//}
-
+			
 			//if (key->get_input_state__normal__(INPUT_MY_ID_SELECT) != 0) {
 			//	if (booting_flag == false) {
 			//		M_debug_printf("=========================================================\n");

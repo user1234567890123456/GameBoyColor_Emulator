@@ -320,7 +320,7 @@ int _stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR command
 	//==============================================================================
 
 	const TCHAR* CHEAT_WINDOW_DEF_STR = _T("CHEAT_WINDOW");
-	const TCHAR* CHEAT_WINDOW_TITLE_STR = _T("チートのウインドウ");
+	const TCHAR* CHEAT_WINDOW_TITLE_STR = _T("チート/メモリのウインドウ");
 
 	WNDCLASSEX cheat_wnd_ex;
 	cheat_wnd_ex.cbSize = sizeof(WNDCLASSEX);
