@@ -918,6 +918,8 @@ private:
 		}
 		use_rom_bank_no &= ((Main::PGM_size >> 4/*16で割る*/) - 1);//PGMのサイズに必要な範囲内になるようにANDで絞る
 
+		//M_debug_printf("use_rom_bank_no = 0x%02X\n", use_rom_bank_no);
+
 		if (use_rom_bank_no == 0) {
 			return &(gbx_ram.RAM[0x0000]);
 		}
