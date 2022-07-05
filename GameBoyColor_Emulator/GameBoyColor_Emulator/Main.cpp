@@ -1229,7 +1229,7 @@ LRESULT CALLBACK CheatWinProc(HWND h_wnd, UINT u_msg, WPARAM w_param, LPARAM l_p
 		TextOut(hdc, 10, 10, _T("チートコード(16進数、複数行可能)  例)ABCD1234"), lstrlen(_T("チートコード(16進数、複数行可能)  例)ABCD1234")));
 		TextOut(hdc, 10, 250, _T("チートコード(常駐します、16進数、複数行可能)"), lstrlen(_T("チートコード(常駐します、16進数、複数行可能)")));
 		TextOut(hdc, 10, 430, _T("適用中のチートコード一覧"), lstrlen(_T("適用中のチートコード一覧")));
-		TextOut(hdc, 410, 10, _T("メモリのサーチの結果"), lstrlen(_T("メモリのサーチの結果")));
+		TextOut(hdc, 410, 10, _T("メモリのサーチの結果(表示するのは1000件まで)"), lstrlen(_T("メモリのサーチの結果(表示するのは1000件まで)")));
 		TextOut(hdc, 410, 220, _T("サーチしたい値(16進数)"), lstrlen(_T("サーチしたい値(16進数)")));
 		TextOut(hdc, 600, 220, _T("サーチしたい値のサイズ"), lstrlen(_T("サーチしたい値のサイズ")));
 		TextOut(hdc, 410, 320, _T("絞り込みのオプション"), lstrlen(_T("絞り込みのオプション")));
@@ -1706,6 +1706,10 @@ void process_first_search_result() {
 	TCHAR item_name_buffer[256];
 	LVITEM item = { 0 };
 	for (int i = 0; i < found_address_info_list.size(); i++) {
+		if (i >= 1000) {//表示するのは小さいアドレスから1000件まで
+			break;
+		}
+
 		item.mask = LVIF_TEXT;
 		wsprintf(item_name_buffer, "address = 0x%04X   prev_value = 0x%X   value = 0x%X", found_address_info_list[i].address, found_address_info_list[i].prev_value, found_address_info_list[i].value);
 		item.pszText = item_name_buffer;
