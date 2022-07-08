@@ -143,7 +143,7 @@ private:
 		}
 
 		prev_angle_mod___square_wave_12_5 = prev_angle_mod___square_wave_12_5 + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
-		angle_normalize(prev_angle_mod___square_wave_12_5);
+		prev_angle_mod___square_wave_12_5 = angle_normalize(prev_angle_mod___square_wave_12_5);
 
 		notify_data_ready();
 
@@ -170,7 +170,7 @@ private:
 		}
 
 		prev_angle_mod___square_wave_25 = prev_angle_mod___square_wave_25 + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
-		angle_normalize(prev_angle_mod___square_wave_25);
+		prev_angle_mod___square_wave_25 = angle_normalize(prev_angle_mod___square_wave_25);
 
 		notify_data_ready();
 
@@ -197,7 +197,7 @@ private:
 		}
 
 		prev_angle_mod___square_wave_50 = prev_angle_mod___square_wave_50 + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
-		angle_normalize(prev_angle_mod___square_wave_50);
+		prev_angle_mod___square_wave_50 = angle_normalize(prev_angle_mod___square_wave_50);
 
 		notify_data_ready();
 
@@ -224,7 +224,7 @@ private:
 		}
 
 		prev_angle_mod___square_wave_75 = prev_angle_mod___square_wave_75 + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
-		angle_normalize(prev_angle_mod___square_wave_75);
+		prev_angle_mod___square_wave_75 = angle_normalize(prev_angle_mod___square_wave_75);
 
 		notify_data_ready();
 
@@ -390,7 +390,7 @@ private:
 		}
 
 		prev_angle_mod___waveform_memory = prev_angle_mod___waveform_memory + ((wave_data_size / 2) * D3DX_PI / (wave_1cycle_length / 2));
-		angle_normalize(prev_angle_mod___waveform_memory);
+		prev_angle_mod___waveform_memory = angle_normalize(prev_angle_mod___waveform_memory);
 
 		notify_data_ready();
 
