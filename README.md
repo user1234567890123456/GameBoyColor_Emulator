@@ -20,5 +20,5 @@ ROM ONLY, MBC1, MBC2, MBC3(RTCは未実装), MBC5 に対応しています
 <img src="https://user-images.githubusercontent.com/81889210/178156488-99adf2c5-1ab4-4353-ab31-19541a43e759.png" width="300"> <img src="https://user-images.githubusercontent.com/81889210/178156489-a2cecc58-5ca7-4a0c-9584-af7baeacb62a.png" width="300"><br/>
 <br/>
 <br/>
-チート/メモリサーチ機能も対応しています  
+チート/メモリサーチ機能もあります  
 <img src="https://user-images.githubusercontent.com/81889210/178157552-f69775fc-bd9a-48c0-a9b2-4c1680f46d2b.png" width="400"><br/>
