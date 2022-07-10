@@ -14,7 +14,7 @@ ROM ONLY, MBC1, MBC2, MBC3(RTCは未実装), MBC5 に対応しています
 ビルドしてできた実行可能ファイルをExecutableディレクトリに入れると実行できます  
 <br>
 # スクリーンショット
-<img src="screenshot/test/test1.png" width="300"><img src="screenshot/test/test2.png" width="300"><br/>
+<img src="screenshot/test/test1.png" width="300"><img src="screenshot/test/test3.png" width="300"><br/>
 <img src="https://user-images.githubusercontent.com/81889210/178156480-d6f30239-f787-4ba3-8aa4-e5cdcfea23d6.png" width="300"><img src="https://user-images.githubusercontent.com/81889210/178156481-ef94df31-b6ac-452f-ae7d-33df47938f38.png" width="300"><br/>
 <img src="https://user-images.githubusercontent.com/81889210/178156486-c61fa0d8-0afa-4e56-81b7-b8d3d5d6c4de.png" width="300"><img src="https://user-images.githubusercontent.com/81889210/178156487-299a6dd2-397d-4e52-ab76-1a59ff133f22.png" width="300"><br/>
 <img src="https://user-images.githubusercontent.com/81889210/178156494-0429cc27-f878-48af-ab81-aad75df03c54.png" width="300"><img src="https://user-images.githubusercontent.com/81889210/178156495-461c2a35-e4af-435a-bb9e-7867d8c3b677.png" width="300"><br/>
