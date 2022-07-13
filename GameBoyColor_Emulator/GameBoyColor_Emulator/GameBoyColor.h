@@ -1149,7 +1149,20 @@ private:
 		}
 
 		if (read_address <= 0x3FFF) {//ROMバンク00
-			read_value = gbx_ram.RAM[read_address];
+			if (cart_mbc_type == CART_MBC_TYPE::MBC1 && bank_mode == BankMode::SRAM && Main::PGM_size >= 1024) {//MBC1のときかつ"RAMバンクモード / アドバンスドROMバンクモード" のときかつROMのサイズが1MB以上の時
+				uint32_t use_rom_bank_no = ((rom_bank_no__high & 0b00000011) << 5);
+				use_rom_bank_no &= ((Main::PGM_size >> 4/*16で割る*/) - 1);//PGMのサイズに必要な範囲内になるようにANDで絞る
+
+				if (use_rom_bank_no == 0) {
+					read_value = gbx_ram.RAM[read_address];
+				}
+				else {
+					read_value = *((uint8_t*)(ROM_bank_data_ptr + ((use_rom_bank_no - 2) * 0x4000) + read_address));
+				}
+			}
+			else {
+				read_value = gbx_ram.RAM[read_address];
+			}
 		}
 		else if (read_address <= 0x7FFF) {//ROMバンク01-7F
 			//read_value = gbx_ram.RAM[read_address];
@@ -1547,7 +1560,10 @@ private:
 				cart_mbc_type == CART_MBC_TYPE::MBC1)
 			{
 				rom_bank_no__low = (value & 0b00011111);
-				if (rom_bank_no__low == 0 && (!(bank_mode == BankMode::ROM && rom_bank_no__high != 0))) {
+
+				//M_debug_printf("[write_address <= 0x3FFF] rom_bank_no__low = %d, rom_bank_no__high = %d, bank_mode = %s\n", rom_bank_no__low, rom_bank_no__high, (bank_mode == BankMode::ROM) ? "ROM_MODE" : "OTHER_MODE");
+
+				if (rom_bank_no__low == 0) {
 					rom_bank_no__low = 1;
 				}
 			}
@@ -1606,8 +1622,15 @@ private:
 					rom_bank_no__high = (value & 0b00000011);
 				}
 				else if (bank_mode == BankMode::SRAM) {
-					sram_bank_no = (value & 0b00000011);
+					if (Main::PGM_size >= 1024) {
+						rom_bank_no__high = (value & 0b00000011);
+					}
+					else {
+						sram_bank_no = (value & 0b00000011);
+					}
 				}
+
+				//M_debug_printf("[write_address <= 0x5FFF] rom_bank_no__low = %d, rom_bank_no__high = %d, bank_mode = %s\n", rom_bank_no__low, rom_bank_no__high, (bank_mode == BankMode::ROM) ? "ROM_MODE" : "OTHER_MODE");
 			}
 			else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
 				//何もしない
