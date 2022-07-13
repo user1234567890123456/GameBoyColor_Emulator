@@ -946,8 +946,8 @@ private:
 		else if (cart_mbc_type == CART_MBC_TYPE::MBC2) {
 			return &(gbx_ram.RAM[0xA000]);
 		}
-	
-		if (sram_bank_no == 0) {
+
+		if (use_sram_bank_no == 0) {
 			return &(gbx_ram.RAM[0xA000]);
 		}
 		else {
