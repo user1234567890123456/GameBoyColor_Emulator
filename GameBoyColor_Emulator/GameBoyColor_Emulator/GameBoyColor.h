@@ -23,6 +23,8 @@ using namespace std;
 class GameBoyColor
 {
 private:
+	uint32_t rom_crc32 = 0;
+
 
 	vector<uint32_t> resident_cheat_code_list;
 
@@ -5621,6 +5623,38 @@ private:
 		memset(WRAM_bank1_7_data_ptr__cgb, 0, 0x1000 * 7);
 	}
 
+	//ROMのCRC32を計算する
+	int calc_rom_file_crc32(const char* filename, uint32_t* result) {
+		FILE* rom_crc32_fp;
+		if (fopen_s(&rom_crc32_fp, filename, "rb") != 0) {
+			return -1;
+		}
+
+		size_t rom_size = (size_t)_filelengthi64(_fileno(rom_crc32_fp));
+
+		uint8_t* rom_data_buffer__crc32 = (uint8_t*)malloc(rom_size);
+		if (rom_data_buffer__crc32 == nullptr) {
+			goto calc_rom_crc32_error;
+		}
+		
+		if (fread(rom_data_buffer__crc32, sizeof(uint8_t), rom_size, rom_crc32_fp) != rom_size) {
+			goto calc_rom_crc32_error;
+		}
+
+		*result = CRC::get_instance_ptr()->crc32(rom_data_buffer__crc32, rom_size);
+
+		free(rom_data_buffer__crc32);
+
+		fclose(rom_crc32_fp);
+
+		return 0;
+
+	calc_rom_crc32_error:
+		fclose(rom_crc32_fp);
+
+		return -1;
+	}
+
 	int read_rom_file(const char* filename) {
 		FILE* rom_fp;
 		if (fopen_s(&rom_fp, filename, "rb") != 0) {
@@ -5840,6 +5874,50 @@ private:
 		fclose(rom_fp);
 
 		return -1;
+	}
+
+#define POCKET_MONSTER_CRYSTAL_JPN__CRC32 0x270C4ECC
+	/*
+	CRC32の計算結果でソフトを判断してソフトによっては動作するようにパッチをあてる
+
+	モバイルシステムGBなどをとばす
+	*/
+	void patch_read_rom_data(uint32_t rom_crc32) {
+		if (rom_crc32 == POCKET_MONSTER_CRYSTAL_JPN__CRC32) {//ポケットモンスタークリスタル(日本版)
+			execute_patch__POKEMON_CRYSTAL_JPN();
+		}
+	}
+
+	//ポケットモンスタークリスタル(日本版)
+	void execute_patch__POKEMON_CRYSTAL_JPN() {
+		/*
+		モバイルシステムGBの初期化？の処理を回避する
+		
+		<before>
+		ROM1:6590	CD C2 31	call 31C2
+		ROM1:6593	3E 5B		ld a,5B		;バンク0x5B
+		ROM1:6595	21 00 40	ld hl,4000	;ジャンプ先のアドレス0x4000
+		ROM1:6598	CF			rst 08		;上2行で指定した場所にジャンプする
+		ROM1:6599	C3 85 63	jp 6385
+
+		<after>
+		ROM1:6590	CD C2 31	call 31C2
+		ROM1:6593	00 			nop
+		ROM1:6594	00 			nop
+		ROM1:6595	00 			nop
+		ROM1:6596	00 			nop
+		ROM1:6597	00 			nop
+		ROM1:6598	00 			nop
+		ROM1:6599	C3 85 63	jp 6385
+		*/
+		gbx_ram.RAM[0x6593] = 0x00;
+		gbx_ram.RAM[0x6594] = 0x00;
+		gbx_ram.RAM[0x6595] = 0x00;
+		gbx_ram.RAM[0x6596] = 0x00;
+		gbx_ram.RAM[0x6597] = 0x00;
+		gbx_ram.RAM[0x6598] = 0x00;
+
+		M_debug_printf("execute_patch__POKEMON_CRYSTAL_JPN() END...\n");
 	}
 
 	uint8_t* get_backbuffer_data_256x256_ptr(bool tilemap_type1_flag, bool tiledata_type1_flag) {
@@ -7358,9 +7436,16 @@ public:
 
 		memset(gbx_ram.RAM, 0, RAM_SIZE);
 
+		if (calc_rom_file_crc32(rom_filename, &rom_crc32) != 0) {
+			goto gbx_init_error;
+		}
+		M_debug_printf("ROMのcrc32の計算結果 = 0x%08X\n", rom_crc32);
+
 		if (read_rom_file(rom_filename) != 0) {
 			goto gbx_init_error;
 		}
+
+		patch_read_rom_data(rom_crc32);//ソフトによっては動くようにパッチをあてる
 
 		cpu_init();
 		ppu_init();
