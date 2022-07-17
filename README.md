@@ -1,6 +1,9 @@
 # GameBoyColor_Emulator
-GameBoyColor Emulator
-  
+GameBoyColor Emulator  
+<br>
+BootROM不使用版はこちら->https://github.com/user1234567890123456/GameBoyColor_Emulator  
+※BootROM不使用版はビルド済みの実行可能ファイルが付属しているので自分でビルドする必要がありません  
+<br>
 ゲームボーイカラーのエミュレーターです  
 ゲームボーイ(白黒)にも対応しています  
 ROM ONLY, MBC1, MBC2, MBC3(RTCは未実装), MBC5 に対応しています  
