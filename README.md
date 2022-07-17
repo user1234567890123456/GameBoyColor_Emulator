@@ -1,7 +1,7 @@
 # GameBoyColor_Emulator
 GameBoyColor Emulator  
 <br>
-BootROM不使用版はこちら->https://github.com/user1234567890123456/GameBoyColor_Emulator  
+BootROM不使用版はこちら->https://github.com/user1234567890123456/GameBoyColor_Emulator_NoBootROM  
 ※BootROM不使用版はビルド済みの実行可能ファイルが付属しているので自分でビルドする必要がありません  
 <br>
 ゲームボーイカラーのエミュレーターです  
