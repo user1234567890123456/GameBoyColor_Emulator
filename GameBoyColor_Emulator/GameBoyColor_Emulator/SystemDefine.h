@@ -22,7 +22,7 @@
 
 #define __VERSION_STR__ _T("VERSION 1.00")
 
-#define __MUTEX_NAME__ "k1Ol2fLe2gF9TJrcQmJiCgPGe6kSVkE6"
+#define __MUTEX_NAME__ "ZssjBj1lmvEPdI831Tsf8UB5uV0Py9UC"
 
 
 //#define GAMEBOYCOLOR_EMULATOR_DEBUG
