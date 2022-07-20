@@ -6,7 +6,7 @@ BootROM不使用版はこちら->https://github.com/user1234567890123456/GameBoy
 <br>
 ゲームボーイカラーのエミュレーターです  
 ゲームボーイ(白黒)にも対応しています  
-ROM ONLY, MBC1, MBC2, MBC3(RTCは未実装), MBC5, HuC-1 に対応しています  
+ROM ONLY, MBC1, MBC2, MBC3(RTCにも対応), MBC5, HuC-1 に対応しています  
 サウンドを実装しています(各チャンネルごとにミュート可能)  
 動作しないソフトもあります  
 <br>
